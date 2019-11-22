@@ -14,7 +14,7 @@ submit = "%s/submit" % path
 for ch in chs:
     outfile = "ch%s_m%s_detector_flux.out" % (ch, m)
     run     = pycondor.Job("ch%s_m%s_detector_flux" % (ch, m), 
-               "/data/user/jlazar/dm/scripts/get_detector_flux.sh", 
+               "/data/user/solar_WIMP/scripts/get_detector_flux.sh", 
                error=error, 
                output=output, 
                log=log, 

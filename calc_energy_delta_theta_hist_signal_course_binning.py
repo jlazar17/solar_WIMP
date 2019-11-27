@@ -45,7 +45,7 @@ def set_data_path():
     if r.match(os.popen('hostname').readline().rstrip("\n")) is not None:
         data_path = "/data/user/jlazar/solar_WIMP/data/"
     elif os.popen('hostname').readline().rstrip("\n")=='MBP-FVFXC6EKHV2D.local':
-        data_path = "/Users/jlazar/Documents/IceCube/data/"
+        data_path = "/Users/jlazar/Documents/IceCube/solar_WIMP/data/"
     else:
         print("Machine not recognized")
         quit()

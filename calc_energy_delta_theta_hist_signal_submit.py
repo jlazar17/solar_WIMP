@@ -1,12 +1,10 @@
 import pycondor
 import numpy as np
-import sys
+from sys import argv as args
 
-args    = sys.argv
-nuType  = args[1]
-ch      = args[2]
-mChi    = args[3]
-binning = args[4]
+ch = int(args[1])
+m  = int(args[2])
+nu_types = ["nu", "nuBar"]
 
 path   = "/home/jlazar/condor_logs/energy_delta_theta_hist_signal"
 error  = "%s/error" % path
@@ -14,21 +12,21 @@ output = "%s/output" % path
 log    = "%s/log" % path
 submit = "%s/submit" % path
 
-runNs = [ int(i) for i in np.linspace(0,99,100) ]
-mcFile = "/data/user/jlazar/data/solar_WIMP/data/mcRecarray.npy"
+run_ns = [ int(i) for i in np.linspace(0,99,100) ]
+mc_file = "/data/user/jlazar/solar_WIMP/data/mcRecarray.npy"
 
-outfile = "ch%s_m%s_%s_energy_delta_theta_hist_signal.out" % (ch, mChi, nuType)
-run     = pycondor.Job("ch%s_m%s_%s_energy_delta_theta_hist_signal" % (ch, mChi, nuType), 
-                       "/data/user/jlazar/solar_WIMP/get_energy_delta_theta_hist_signal.sh", 
-                       error=error, 
-                       output=output, 
-                       log=log, 
-                       submit=submit, 
-                       universe="vanilla", 
-                       notification="never"
-                      )
 
-for n in runNs:	
-    run.add_arg("%s %s %s %s %s %s %s" % (n, nuType, ch, mChi, binning, mcFile, outfile))
-#run.build()
-run.build_submit()
+for nt in nu_types:
+    outfile = "ch%s_m%s_%s_energy_delta_theta_hist_signal.out" % (ch, m, nt)
+    run     = pycondor.Job("ch%s_m%s_%s_energy_delta_theta_hist_signal" % (ch, m, nt), 
+               "/data/user/jlazar/solar_WIMP/get_energy_delta_theta_hist_signal_course_binning.sh", 
+               error=error, 
+               output=output, 
+               log=log, 
+               submit=submit, 
+               universe="vanilla", 
+               notification="never"
+              )
+    for n in run_ns:
+        run.add_arg("%s %s %s %s %s %s" % (n, nt, ch, m, mc_file, outfile))
+    run.build()

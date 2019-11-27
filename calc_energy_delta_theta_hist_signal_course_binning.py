@@ -38,7 +38,7 @@ else:
 
 np.random.seed(SEED)
 
-dataPath    = "/data/user/jlazar/solarWIMP/data"
+dataPath    = "/data/user/jlazar/solar_WIMP/data"
 #dataPath    = "/Users/jlazar/Documents/IceCube/data"
 rSun        = 6.9e10  # radius of sun in cm
 solarZenPdf = np.loadtxt("%s/solar_zenith_pdf.txt" % dataPath)
@@ -133,7 +133,7 @@ def main():
     monteCarlo = loadMC(mcFile, nuType)
     truncateMC(monteCarlo, nRun)
     numGammaTheta = gammaCalc(dn_dz, monteCarlo)
-    np.save("%s/ch%d_m%d_%s_%d_energy_delta_theta_hist_course.npy" % (dataPath, ch, m, nuType, nRun), numGammaTheta)
+    np.save("%s/e_d_theta_hist/partial_hists/ch%d_m%d_%s_%d_energy_delta_theta_hist_course.npy" % (dataPath, ch, m, nuType, nRun), numGammaTheta)
 
 
 main()

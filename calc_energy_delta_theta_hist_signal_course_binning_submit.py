@@ -13,7 +13,7 @@ log    = "%s/log" % path
 submit = "%s/submit" % path
 
 run_ns = [ int(i) for i in np.linspace(0,99,100) ]
-mc_file = "/data/user/jlazar/solarWIMP/data/mcRecarray.npy"
+mc_file = "/data/user/jlazar/solar_WIMP/data/mcRecarray.npy"
 
 
 for nt in nu_types:

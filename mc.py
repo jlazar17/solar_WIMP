@@ -7,11 +7,8 @@ class MonteCarlo():
 
     def __init__(self, arrPath, nuType):
         assert (nuType in ["nu", "nuBar"]), "Invalid nuType"
-        print("papp")
         self.recArray = np.load(arrPath)
-        print("peep")
         self.nuType   = nuType
-        print("piip")
         self.setIndices()
         self.loadH5Info()
 

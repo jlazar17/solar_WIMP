@@ -148,7 +148,7 @@ def main():
     monteCarlo = loadMC(mcFile, nuType)
     truncateMC(monteCarlo, nRun)
     numGammaTheta = gammaCalc(dn_dz, monteCarlo)
-    np.save("%s/e_d_theta_hist/partial_hists/ch%d_m%d_%s_%d_energy_delta_theta_hist_course.npy" % (data_path, ch, m, nuType, nRun), numGammaTheta)
+    np.save("%s/e_d_theta_hist/partial_hists/ch%d_m%d_%s_%d_energy_delta_theta_hist.npy" % (data_path, ch, m, nuType, nRun), numGammaTheta)
 
 
 main()

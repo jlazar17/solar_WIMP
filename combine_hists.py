@@ -34,11 +34,11 @@ nu_bar_flux = np.zeros(shape)
 print("ch==%d" % ch)
 print("m==%d" % m)
 for n in ns:
-    nu_flux     += np.load("%s/ch%d_m%d_nu_%d_energy_delta_theta_hist_course.npy" %(data_path, ch, m, n))
+    nu_flux     += np.load("%s/ch%d_m%d_nu_%d_energy_delta_theta_hist.npy" %(data_path, ch, m, n))
     #if any_nan(nu_flux, "nu_flux"):
     if np.any(np.isnan(nu_flux)):
         bad_ones.append((ch, m, n, "nu"))
-    nu_bar_flux += np.load("%s/ch%d_m%d_nuBar_%d_energy_delta_theta_hist_course.npy" %(data_path, ch, m, int(n)))
+    nu_bar_flux += np.load("%s/ch%d_m%d_nuBar_%d_energy_delta_theta_hist.npy" %(data_path, ch, m, int(n)))
     if any_nan(nu_bar_flux, "nu_bar_flux"):
         bad_ones.append((ch, m, n, "nu_bar"))
     
@@ -50,7 +50,7 @@ nu_bar_flux[np.where(nu_bar_flux<1e-50)] = 0
 
 tot_flux    = nu_flux + nu_bar_flux
 
-np.save("%s/ch%d_m%d_nu_e_d_theta_hist_course.npy" % (data_path, ch, m), nu_flux)
-np.save("%s/ch%d_m%d_nu_bar_e_d_theta_hist_course.npy" % (data_path, ch, m), nu_bar_flux)
-np.save("%s/ch%d_m%d_tot_e_d_theta_hist_course.npy" % (data_path, ch, m), tot_flux)
+np.save("%s/ch%d_m%d_nu_e_d_theta_hist.npy" % (data_path, ch, m), nu_flux)
+np.save("%s/ch%d_m%d_nu_bar_e_d_theta_hist.npy" % (data_path, ch, m), nu_bar_flux)
+np.save("%s/ch%d_m%d_tot_e_d_theta_hist.npy" % (data_path, ch, m), tot_flux)
 

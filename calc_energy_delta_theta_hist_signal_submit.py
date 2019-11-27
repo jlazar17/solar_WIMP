@@ -15,7 +15,7 @@ log    = "%s/log" % path
 submit = "%s/submit" % path
 
 runNs = [ int(i) for i in np.linspace(0,99,100) ]
-mcFile = "/data/user/jlazar/data/solarWIMP/data/mcRecarray.npy"
+mcFile = "/data/user/jlazar/data/solar_WIMP/data/mcRecarray.npy"
 
 outfile = "ch%s_m%s_%s_energy_delta_theta_hist_signal.out" % (ch, mChi, nuType)
 run     = pycondor.Job("ch%s_m%s_%s_energy_delta_theta_hist_signal" % (ch, mChi, nuType), 

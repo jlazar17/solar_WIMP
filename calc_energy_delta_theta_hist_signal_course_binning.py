@@ -1,27 +1,26 @@
 import numpy as np
 import solar_position_calc as sc
-import sys
+from sys import argv as args
 import mc
 import dicts
 
-args = sys.argv
+ms  = [200,300,400,500,600,700,800,900,1000,2000,3000,4000,5000,6000,7000,8000,9000,10000]
+chs = [5,8,11]
+
+SKIP = 100
+
+np.random.seed(73)
+ri  = np.random.randint(100000, size=(len(chs), len(ms)))
+SEED_DICT = {ch:{} for ch in chs}
+for i, ch in enumerate(chs):
+    for j, mChi in enumerate(ms):
+        SEED_DICT[ch][mChi] = ri[i][j]
 
 nRun = int(args[1])
 nuType = args[2]
 ch = int(args[3])
 m = int(args[4])
 mcFile = args[5]
-
-SKIP = 100
-
-np.random.seed(73)
-ms  = [200,300,400,500,600,700,800,900,1000,2000,3000,4000,5000,6000,7000,8000,9000,10000]
-chs = [5,8,11]
-ri  = np.random.randint(100000, size=(len(chs), len(ms)))
-SEED_DICT = {ch:{} for ch in chs}
-for i, ch in enumerate(chs):
-    for j, mChi in enumerate(ms):
-        SEED_DICT[ch][mChi] = ri[i][j]
 
 #BB_SEEDS  = {200 :31415, 300 :92653, 400 :27302, 500 :89793, 600 :93955, 700 :65695, 800 :59322, 900 :35163, 
 #             1000:23846, 2000:55840, 3000:26433, 4000:96382, 5000:83279, 6000:, 10000:50288}
@@ -38,15 +37,30 @@ else:
 
 np.random.seed(SEED)
 
-dataPath    = "/data/user/jlazar/solar_WIMP/data"
+def set_data_path():
+    import re
+    import os
+    global data_path
+    r = re.compile('cobalt.*.icecube.wisc.edu')
+    if r.match(os.popen('hostname').readline().rstrip("\n")) is not None:
+        data_path = "/data/user/jlazar/solar_WIMP/data/"
+    elif os.popen('hostname').readline().rstrip("\n")=='MBP-FVFXC6EKHV2D.local':
+        data_path = "/Users/jlazar/Documents/IceCube/data/"
+    else:
+        print("Machine not recognized")
+        quit()
+
+set_data_path()
+
+#dataPath    = "/data/user/jlazar/solar_WIMP/data"
 #dataPath    = "/Users/jlazar/Documents/IceCube/data"
 rSun        = 6.9e10  # radius of sun in cm
-solarZenPdf = np.loadtxt("%s/solar_zenith_pdf.txt" % dataPath)
+solarZenPdf = np.loadtxt("%s/solar_zenith_pdf.txt" % data_path)
 z           = np.radians(np.linspace(0, 179, 1800))
 #sd_xs       = dicts.xs_limit_dict["sd"][ch][m]
-sd_ann_rate = dicts.sd_ann_rate_dict[m]
+#sd_ann_rate = dicts.sd_ann_rate_dict[m]
 #rate        = sd_xs * sd_ann_rate
-rate        = sd_ann_rate
+#rate        = sd_ann_rate
 
 deltaT = 60. * 30. # sec
 jdStart = 2455349.5
@@ -65,14 +79,14 @@ gammaBins     = np.linspace(0, np.pi, 113)# 113 picked to best match binning on 
 
 
 def loadFlux(nuType, ch, m):
-    mc_recarray = np.load("%s/mcRecarray.npy" % dataPath)
+    mc_recarray = np.load("%s/mcRecarray.npy" % data_path)
     if nuType == "nu":
         i  = np.where(mc_recarray["i"]==14)[0]
         #return np.load("%s/ch%d_m%d_nu_mu_flux.npy" % (dataPath, ch, m))
     elif nuType == "nuBar":
         #return np.load("%s/ch%d_m%d_nu_mu_bar_flux.npy" % (dataPath, ch, m))
         i  = np.where(mc_recarray["i"]==-14)[0]
-    return np.load("%s/ch%d_m%d_mc_dn_dz.npy" % (dataPath, ch, m))[i]
+    return np.load("%s/mc_dn_dz/ch%d_m%d_mc_dn_dz.npy" % (data_path, ch, m))[i]
 
 
 def loadMC(mc_rec_array_file, nuType):
@@ -110,7 +124,8 @@ def gammaCalc(dn_dz, monteCarlo):
         #    print("rad**2=="+str(rad**2))
         #    print("deltaT=="+str(deltaT))
         n = np.where(monteCarlo.trueGamma <= gammaCut,
-                     (1./m) * dn_dz * rate * (1./solar_solid_angle) * (1./(4*np.pi*rad**2)) * monteCarlo.oneWeight * deltaT,
+                     dn_dz * monteCarlo.oneWeight,
+                     #(1./m) * dn_dz * rate * (1./solar_solid_angle) * (1./(4*np.pi*rad**2)) * monteCarlo.oneWeight * deltaT,
                      0
                     )
         
@@ -123,17 +138,17 @@ def gammaCalc(dn_dz, monteCarlo):
 
 
 def main():
-    nRun = int(args[1])
-    nuType = args[2]
-    ch = int(args[3])
-    m = int(args[4])
-    mcFile = args[5]
+#    nRun = int(args[1])
+#    nuType = args[2]
+#    ch = int(args[3])
+#    m = int(args[4])
+#    mcFile = args[5]
     dn_dz = loadFlux(nuType, ch, m)[nRun::SKIP]
     
     monteCarlo = loadMC(mcFile, nuType)
     truncateMC(monteCarlo, nRun)
     numGammaTheta = gammaCalc(dn_dz, monteCarlo)
-    np.save("%s/e_d_theta_hist/partial_hists/ch%d_m%d_%s_%d_energy_delta_theta_hist_course.npy" % (dataPath, ch, m, nuType, nRun), numGammaTheta)
+    np.save("%s/e_d_theta_hist/partial_hists/ch%d_m%d_%s_%d_energy_delta_theta_hist_course.npy" % (data_path, ch, m, nuType, nRun), numGammaTheta)
 
 
 main()

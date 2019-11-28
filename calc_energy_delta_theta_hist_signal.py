@@ -112,7 +112,6 @@ def gammaCalc(dn_dz, monteCarlo):
         rad = sc.solarR(G)
         solar_solid_angle = 2*np.pi*(1-np.cos(rSun/rad))
 
-        # gammaCut = np.arctan(rProductionRegion / rad)
         gammaCut = np.arctan(rSun / rad)
 
         monteCarlo.setTrueGamma(zeniths[i], azimuths[i])
@@ -124,7 +123,9 @@ def gammaCalc(dn_dz, monteCarlo):
         #    print("rad**2=="+str(rad**2))
         #    print("deltaT=="+str(deltaT))
         n = np.where(monteCarlo.trueGamma <= gammaCut,
-                     dn_dz * monteCarlo.oneWeight,
+                     dn_dz * monteCarlo.oneWeight * \
+                     (1. / solar_solid_angle) * \
+                     (1. / (4*np.pi*np.power(rad, 2))),
                      #(1./m) * dn_dz * rate * (1./solar_solid_angle) * (1./(4*np.pi*rad**2)) * monteCarlo.oneWeight * deltaT,
                      0
                     )

@@ -35,7 +35,7 @@ def set_data_path():
     if os.popen('hostname').readline().rstrip("\n")=='dyn-8-50.icecube.wisc.edu':
         data_path = "/Users/jlazar/Documents/IceCube/data/"
     else:
-        data_path = "/data/user/jlazar/solar_WIMP/data/qr_dn_dz/"
+        data_path = "/data/user/jlazar/solar_WIMP/data/"
 
 set_data_path()
 
@@ -51,4 +51,6 @@ for i, zen in enumerate(zens):
     nu_mu_bar_dn_dz = np.asarray([tup[5] for tup in f]) * float(m)
     dn_dz[0][i][:] = nu_mu_dn_dz
     dn_dz[1][i][:] = nu_mu_bar_dn_dz
-np.save("%s/ch%d_m%d_dn_dz.npy" % (data_path, ch_num, m), dn_dz)
+if ~os.path.isdir("%s/qr_dn_dz" % data_path):
+    os.mkdir("%s/qr_dn_dz" % data_path)
+np.save("%s/qr_dn_dz/ch%d_m%d_dn_dz.npy" % (data_path, ch_num, m), dn_dz)

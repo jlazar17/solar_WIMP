@@ -4,7 +4,7 @@ from sys import argv as args
 import mc
 import dicts
 
-ms  = [200,300,400,500,600,700,800,900,1000,2000,3000,4000,5000,6000,7000,8000,9000,10000]
+ms  = [200,300,400,500,600,700,800,900,1000,1500,2000,3000,4000,5000,6000,7000,8000,9000,10000]
 chs = [5,8,11]
 
 SKIP = 100
@@ -22,14 +22,6 @@ ch = int(args[3])
 m = int(args[4])
 mcFile = args[5]
 
-#BB_SEEDS  = {200 :31415, 300 :92653, 400 :27302, 500 :89793, 600 :93955, 700 :65695, 800 :59322, 900 :35163, 
-#             1000:23846, 2000:55840, 3000:26433, 4000:96382, 5000:83279, 6000:, 10000:50288}
-#WW_SEEDS  = {200 :7816,  300 :40628, 400 :54732, 500 :62089, 600 :60526, 700 :30218, 800 :65888, 900 :54407,
-#             1000:98628, 2000:25176, 3000:3482 , 4000:49147, 5000:53421, 6000:, 10000:17067}
-#TT_SEEDS  = {200 :95505, 300 :82231, 400 :47256, 500 :72535, 600 :18075, 700 :45910, 800 :30851, 900 :69113, 
-#             1000 94081, 2000:97948, 3000:28481, 4000:65691, 5000:11745, 6000:, 10000:2841}
-#SEED_DICT = {5:BB_SEEDS, 8:WW_SEEDS, 11:TT_SEEDS}
-
 if nuType=="nu":
     SEED = SEED_DICT[ch][m] + nRun
 else:
@@ -37,23 +29,7 @@ else:
 
 np.random.seed(SEED)
 
-def set_data_path():
-    import re
-    import os
-    global data_path
-    r = re.compile('cobalt.*.icecube.wisc.edu')
-    if r.match(os.popen('hostname').readline().rstrip("\n")) is not None:
-        data_path = "/data/user/jlazar/solar_WIMP/data/"
-    elif os.popen('hostname').readline().rstrip("\n")=='MBP-FVFXC6EKHV2D.local':
-        data_path = "/Users/jlazar/Documents/IceCube/solar_WIMP/data/"
-    else:
-        print("Machine not recognized")
-        quit()
-
-set_data_path()
-
-#dataPath    = "/data/user/jlazar/solar_WIMP/data"
-#dataPath    = "/Users/jlazar/Documents/IceCube/data"
+data_path    = "/data/user/jlazar/solar_WIMP/data"
 rSun        = 6.9e10  # radius of sun in cm
 solarZenPdf = np.loadtxt("%s/solar_zenith_pdf.txt" % data_path)
 z           = np.radians(np.linspace(0, 179, 1800))
@@ -105,6 +81,7 @@ def truncateMC(monteCarlo, nRun):
 
 def gammaCalc(dn_dz, monteCarlo):
     numGammaTheta    = np.zeros((len(gammaBins)-1, len(eBins)-1))
+    print("boing")
     for i, jd in enumerate(jds):
         x = sc.nParameter(jd)
         obl = sc.solarObliquity(x)
@@ -149,6 +126,8 @@ def main():
     monteCarlo = loadMC(mcFile, nuType)
     truncateMC(monteCarlo, nRun)
     numGammaTheta = gammaCalc(dn_dz, monteCarlo)
+    if ~os.path.isdir("%s/e_d_theta_hist/partial_hists" % data_path):
+        os.mkdir("%s/e_d_theta_hist/partial_hists" % data_path)
     np.save("%s/e_d_theta_hist/partial_hists/ch%d_m%d_%s_%d_energy_delta_theta_hist.npy" % (data_path, ch, m, nuType, nRun), numGammaTheta)
 
 

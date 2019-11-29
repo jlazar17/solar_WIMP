@@ -28,5 +28,5 @@ run     = pycondor.Job("energy_delta_theta_hist_bg_%s_%s" % (bgParticle, nuType)
 
 for n in runNs:	
     run.add_arg("%s %s %s %s %s" % (n, bgParticle, nuType, mcFile, outfile))
-#run.build()
-run.build_submit()
+run.build()
+#run.build_submit()

@@ -3,6 +3,7 @@ import solar_position_calc as sc
 from sys import argv as args
 import mc
 import dicts
+import os
 
 ms  = [200,300,400,500,600,700,800,900,1000,1500,2000,3000,4000,5000,6000,7000,8000,9000,10000]
 chs = [5,8,11]

@@ -30,7 +30,7 @@ else:
 
 np.random.seed(SEED)
 
-data_path    = "/data/user/jlazar/solar_WIMP/data"
+data_path    = "/data/user/jlazar/solar_WIMP/data/"
 rSun        = 6.9e10  # radius of sun in cm
 solarZenPdf = np.loadtxt("%s/solar_zenith_pdf.txt" % data_path)
 z           = np.radians(np.linspace(0, 179, 1800))

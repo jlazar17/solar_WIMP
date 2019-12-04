@@ -21,9 +21,9 @@ def set_data_path():
     global data_path
     r = re.compile('cobalt.*.icecube.wisc.edu')
     if os.popen('hostname').readline().rstrip("\n")=='dyn-8-50.icecube.wisc.edu':
-        data_path = "/Users/jlazar/Documents/IceCube/data/e_d_theta_hist/partial_hists/"
+        data_path = "/Users/jlazar/Documents/IceCube/data/e_d_theta_hist/"
     else:
-        data_path = "/data/user/jlazar/solar_WIMP/data/e_d_theta_hist/partial_hists/"
+        data_path = "/data/user/jlazar/solar_WIMP/data/e_d_theta_hist/"
 
 
 set_data_path()
@@ -34,11 +34,11 @@ nu_bar_flux = np.zeros(shape)
 print("ch==%d" % ch)
 print("m==%d" % m)
 for n in ns:
-    nu_flux     += np.load("%s/ch%d_m%d_nu_%d_energy_delta_theta_hist.npy" %(data_path, ch, m, n))
+    nu_flux     += np.load("%s/partial_hists/ch%d_m%d_nu_%d_energy_delta_theta_hist.npy" %(data_path, ch, m, n))
     #if any_nan(nu_flux, "nu_flux"):
     if np.any(np.isnan(nu_flux)):
         bad_ones.append((ch, m, n, "nu"))
-    nu_bar_flux += np.load("%s/ch%d_m%d_nuBar_%d_energy_delta_theta_hist.npy" %(data_path, ch, m, int(n)))
+    nu_bar_flux += np.load("%s/partial_hists/ch%d_m%d_nuBar_%d_energy_delta_theta_hist.npy" %(data_path, ch, m, int(n)))
     if any_nan(nu_bar_flux, "nu_bar_flux"):
         bad_ones.append((ch, m, n, "nu_bar"))
     

@@ -50,7 +50,7 @@ nu_bar_flux[np.where(nu_bar_flux<1e-50)] = 0
 
 tot_flux    = nu_flux + nu_bar_flux
 
-np.save("%s/ch%d_m%d_nu_e_d_theta_hist.npy" % (data_path, ch, m), nu_flux)
-np.save("%s/ch%d_m%d_nu_bar_e_d_theta_hist.npy" % (data_path, ch, m), nu_bar_flux)
+#np.save("%s/ch%d_m%d_nu_e_d_theta_hist.npy" % (data_path, ch, m), nu_flux)
+#np.save("%s/ch%d_m%d_nu_bar_e_d_theta_hist.npy" % (data_path, ch, m), nu_bar_flux)
 np.save("%s/ch%d_m%d_tot_e_d_theta_hist.npy" % (data_path, ch, m), tot_flux)
 

@@ -4,6 +4,7 @@ mpl.use("Agg")
 import config
 from sys import argv as args
 from physicsconstants import PhysicsConstants
+import os
 
 param = PhysicsConstants()
 
@@ -51,6 +52,6 @@ for i, zen in enumerate(zens):
     nu_mu_bar_dn_dz = np.asarray([tup[5] for tup in f]) * float(m)
     dn_dz[0][i][:] = nu_mu_dn_dz
     dn_dz[1][i][:] = nu_mu_bar_dn_dz
-if ~os.path.isdir("%s/qr_dn_dz" % data_path):
-    os.mkdir("%s/qr_dn_dz" % data_path)
+#if ~os.path.isdir("%s/qr_dn_dz" % data_path):
+#    os.mkdir("%s/qr_dn_dz" % data_path)
 np.save("%s/qr_dn_dz/ch%d_m%d_dn_dz.npy" % (data_path, ch_num, m), dn_dz)

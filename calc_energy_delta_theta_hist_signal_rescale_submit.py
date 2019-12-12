@@ -19,7 +19,7 @@ mc_file = "/data/user/jlazar/solar_WIMP/data/mcRecarray.npy"
 for nt in nu_types:
     outfile = "ch%s_m%s_%s_energy_delta_theta_hist_signal.out" % (ch, m, nt)
     run     = pycondor.Job("ch%s_m%s_%s_energy_delta_theta_hist_signal" % (ch, m, nt), 
-               "/data/user/jlazar/solar_WIMP/get_energy_delta_theta_hist_signal.sh", 
+               "/data/user/jlazar/solar_WIMP/get_energy_delta_theta_hist_signal_rescale.sh", 
                error=error, 
                output=output, 
                log=log, 

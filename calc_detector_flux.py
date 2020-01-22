@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib as mpl
 mpl.use("Agg")
-import config
+import config_copy
 from sys import argv as args
 from physicsconstants import PhysicsConstants
 import os
@@ -44,7 +44,7 @@ set_data_path()
 ch_num = ws_chan_dict[ch]
 dn_dz = np.zeros((2, n_zen, nodes))
 for i, zen in enumerate(zens):
-    f = config.NuFlux_Solar("Pythia", e_min, e_max, nodes, ch, m, param,
+    f = config_copy.NuFlux_Solar("Pythia", e_min, e_max, nodes, ch, m, param,
                             theta_12=theta_12, theta_13=theta_13, theta_23=theta_23,
                             delta=delta, delta_m_12=delta_m_12, delta_m_13=delta_m_13,
                             interactions=True, xsec=xsec_path, angle=zen)

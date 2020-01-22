@@ -5,6 +5,7 @@ import sys
 args       = sys.argv
 bgParticle = args[1]
 nuType     = args[2]
+binning    = args[3]
 
 path   = "/home/jlazar/condor_logs/energy_delta_theta_hist_bg"
 error  = "%s/error" % path
@@ -27,6 +28,6 @@ run     = pycondor.Job("energy_delta_theta_hist_bg_%s_%s" % (bgParticle, nuType)
                       )
 
 for n in runNs:	
-    run.add_arg("%s %s %s %s %s" % (n, bgParticle, nuType, mcFile, outfile))
+    run.add_arg("%s %s %s %s %s" % (n, bgParticle, nuType, binning, mcFile))
 run.build()
 #run.build_submit()

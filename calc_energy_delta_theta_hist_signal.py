@@ -142,26 +142,38 @@ def gammaCalc(dn_dz):
     for i, jd in enumerate(jds):
         x = sc.nParameter(jd)
         obl = sc.solarObliquity(x)
+        L = sc.L(x)
         G = sc.g(x)
+        lamb = sc.solarLambda(L,G)
         rad = sc.solarR(G)
         solar_solid_angle = 2*np.pi*(1-np.cos(rSun/rad))
+        zenith = sc.equatorialZenith(obl, lamb)
 
         gammaCut = np.arctan(rSun / rad)
+        zmax     = zenith+gammaCut
+        zmin     = zenith-gammaCut
+        amax     = azimuths[i]+gammaCut
+        amin     = azimuths[i]-gammaCut
 
-        nu_gamma   = gaz.opening_angle(nu_zen, nu_az, zeniths[i], azimuths[i])
-        reco_gamma = gaz.opening_angle(reco_zen, reco_az, zeniths[i], azimuths[i])
+        m1 = np.logical_and(nu_zen>zmin, nu_zen<zmax)
+        m2 = np.logical_and((nu_az>amin%(2*np.pi)), nu_az<amax%(2*np.pi))
+        m  = np.logical_and(m1, m2)
+
+
+        nu_gamma   = gaz.opening_angle(nu_zen[m], nu_az[m], zenith, azimuths[i])
+        reco_gamma = gaz.opening_angle(reco_zen[m], reco_az[m], zenith, azimuths[i])
         #monteCarlo.setTrueGamma(zeniths[i], azimuths[i])
         #monteCarlo.setRecoGamma(zeniths[i], azimuths[i])
         n = np.where(nu_gamma <= gammaCut,
-                     dn_dz *                          \
-                     ow *                             \
+                     dn_dz[m] *                          \
+                     ow[m] *                             \
                      (1. / solar_solid_angle) *       \
                      (1. / (4*np.pi*np.power(rad, 2))),
                      0
                     )
         
         
-        hist = np.histogram2d(reco_gamma, reco_e, bins=[gammaBins, eBins], weights=n)
+        hist = np.histogram2d(reco_gamma, reco_e[m], bins=[gammaBins, eBins], weights=n)
         numGammaTheta += hist[0]
 
     return numGammaTheta
@@ -173,7 +185,7 @@ def main():
     #monteCarlo = loadMC(mcFile, nuType)
     #truncateMC(monteCarlo, nRun)
     numGammaTheta = gammaCalc(dn_dz)
-    np.save("%s/e_d_theta_hist/partial_hists/ch%d_m%d_f%f_%s_%s_%d_energy_delta_theta_hist_im_gonna_scream.npy" % (data_path, ch, m, rescale_factor, binning, nuType, nRun), numGammaTheta)
+    np.save("%s/e_d_theta_hist/partial_hists/ch%d_m%d_f%f_%s_%s_%d_energy_delta_theta_hist_im_gonna_scream_test.npy" % (data_path, ch, m, rescale_factor, binning, nuType, nRun), numGammaTheta)
     print("bang")
 
 

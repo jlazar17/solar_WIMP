@@ -21,14 +21,14 @@ parser.add_argument("-m",
                     type=int,
                     help="Dark matter mass"
                    )
-parser.add_argument("-n",
-                    type=int,
-                    help="run number"
-                   )
-parser.add_argument("--nt",
-                    type=str,
-                    help="neutrino type (nu or nuBar)"
-                   )
+#parser.add_argument("-n",
+#                    type=int,
+#                    help="run number"
+#                   )
+#parser.add_argument("--nt",
+#                    type=str,
+#                    help="neutrino type (nu or nuBar)"
+#                   )
 parser.add_argument("--binning",
                     type=str,
                     help="bin width (f=0.5 degree, f=1.6 degrees)"
@@ -38,14 +38,15 @@ args           = parser.parse_args()
 rescale_factor = args.f
 ch             = args.ch
 m              = args.m
-nuType         = args.nt
-nRun           = args.n
+#nuType         = args.nt
+#nRun           = args.n
 binning        = args.binning
+nRun=0
 
 ms  = [200,300,400,500,600,700,800,900,1000,1500,2000,3000,4000,5000,6000,7000,8000,9000,10000]
 chans = [5,8,11]
 
-SKIP = 25
+SKIP = 1
 
 np.random.seed(73)
 ri  = np.random.randint(100000, size=(len(chans), len(ms)))
@@ -53,12 +54,12 @@ SEED_DICT = {chan:{} for chan in chans}
 for i, chan in enumerate(chans):
     for j, mChi in enumerate(ms):
         SEED_DICT[chan][mChi] = ri[i][j]
+SEED = SEED_DICT[ch][m]
 
-
-if nuType=="nu":
-    SEED = SEED_DICT[ch][m] + nRun
-else:
-    SEED = SEED_DICT[ch][m] - 1 - nRun
+#if nuType=="nu":
+#    SEED = SEED_DICT[ch][m] + nRun
+#else:
+#    SEED = SEED_DICT[ch][m] - 1 - nRun
 
 np.random.seed(SEED)
 
@@ -89,27 +90,41 @@ elif binning=="f":
 
 ##### LOAD MC INFORMATION #####
 mc   = np.load("/data/user/jlazar/solar_WIMP/data/mcRecarray.npy")
-if nuType=="nu":
-    indices = np.where(mc["i"]==14)[0]
-else:
-    indices = np.where(mc["i"]==-14)[0]
-ow     = mc["oneWeight"][indices][nRun::SKIP]*1e-4
-nu_e   = mc["nuE"][indices][nRun::SKIP]
-nu_zen = mc["nuZen"][indices][nRun::SKIP]
-nu_az  = mc["nuAz"][indices][nRun::SKIP]
-reco_e = mc["recoE"][indices][nRun::SKIP]
+#if nuType=="nu":
+#    indices = np.where(mc["i"]==14)[0]
+#else:
+#    indices = np.where(mc["i"]==-14)[0]
+#ow     = mc["oneWeight"][indices][nRun::SKIP]*1e-4
+#nu_e   = mc["nuE"][indices][nRun::SKIP]
+#nu_zen = mc["nuZen"][indices][nRun::SKIP]
+#nu_az  = mc["nuAz"][indices][nRun::SKIP]
+#reco_e = mc["recoE"][indices][nRun::SKIP]
+#if rescale_factor==1:
+#    print("Using MC reco angles")
+#    reco_zen = mc["recoZen"][indices][nRun::SKIP]
+#    reco_az  = mc["recoAz"][indices][nRun::SKIP]
+#else:
+#    print("Generating rescaled reco angles")
+#    reco_az, reco_zen = gaz.gen_new_zen_az(rescale_factor)
+#    reco_zen = reco_zen[indices][nRun::SKIP]
+#    reco_az  = reco_az[indices][nRun::SKIP]
+ow     = mc["oneWeight"][nRun::SKIP]*1e-4
+nu_e   = mc["nuE"][nRun::SKIP]
+nu_zen = mc["nuZen"][nRun::SKIP]
+nu_az  = mc["nuAz"][nRun::SKIP]
+reco_e = mc["recoE"][nRun::SKIP]
 if rescale_factor==1:
     print("Using MC reco angles")
-    reco_zen = mc["recoZen"][indices][nRun::SKIP]
-    reco_az  = mc["recoAz"][indices][nRun::SKIP]
+    reco_zen = mc["recoZen"][nRun::SKIP]
+    reco_az  = mc["recoAz"][nRun::SKIP]
 else:
     print("Generating rescaled reco angles")
     reco_az, reco_zen = gaz.gen_new_zen_az(rescale_factor)
-    reco_zen = reco_zen[indices][nRun::SKIP]
-    reco_az  = reco_az[indices][nRun::SKIP]
+    reco_zen = reco_zen[nRun::SKIP]
+    reco_az  = reco_az[nRun::SKIP]
 
-
-dn_dz = np.load("%s/mc_dn_dz/ch%d_m%d_mc_dn_dz.npy" % (data_path, ch, m))[indices][nRun::SKIP]
+#dn_dz = np.load("%s/mc_dn_dz/ch%d_m%d_mc_dn_dz.npy" % (data_path, ch, m))[indices][nRun::SKIP]
+dn_dz = np.load("%s/mc_dn_dz/ch%d_m%d_mc_dn_dz.npy" % (data_path, ch, m))[nRun::SKIP]
 
 #def loadFlux(nuType, ch, m):
 #    mc_recarray = np.load("%s/mcRecarray.npy" % data_path)
@@ -159,6 +174,15 @@ def gammaCalc(dn_dz):
         m2 = np.logical_and((nu_az>amin%(2*np.pi)), nu_az<amax%(2*np.pi))
         m  = np.logical_and(m1, m2)
 
+        #print(rad)
+        #print("gamma_cut==%f" % gammaCut)
+        #print("zenith==%f" % zenith)
+        #print("azimuth==%f" %azimuths[i])
+        #print("dn_dz[m]=="+str(dn_dz[m]))
+        #print("ow[m]=="+str(ow[m]))
+        #print("nu_zen[m]=="+str(nu_zen[m]))
+        #print("nu_az[m]=="+str(nu_az[m]))
+        #quit()
 
         nu_gamma   = gaz.opening_angle(nu_zen[m], nu_az[m], zenith, azimuths[i])
         reco_gamma = gaz.opening_angle(reco_zen[m], reco_az[m], zenith, azimuths[i])
@@ -185,7 +209,7 @@ def main():
     #monteCarlo = loadMC(mcFile, nuType)
     #truncateMC(monteCarlo, nRun)
     numGammaTheta = gammaCalc(dn_dz)
-    np.save("%s/e_d_theta_hist/partial_hists/ch%d_m%d_f%f_%s_%s_%d_energy_delta_theta_hist_im_gonna_scream_test.npy" % (data_path, ch, m, rescale_factor, binning, nuType, nRun), numGammaTheta)
+    np.save("%s/e_d_theta_hist/ch%d_m%d_f%f_%s_energy_delta_theta_hist.npy" % (data_path, ch, m, rescale_factor, binning), numGammaTheta)
     print("bang")
 
 

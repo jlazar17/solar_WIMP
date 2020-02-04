@@ -71,7 +71,7 @@ def interp_dn_dz(ch, m):
     mc_flux[nu_i]     = nu_interp
     mc_flux[nu_bar_i] = nu_bar_interp
     mc_flux[np.where(np.isnan(mc_flux))] = 0
-    np.save("%s/mc_dn_dz/ch%d_m%d_mc_dn_dz.npy" % (data_path, ch, m), mc_flux)
+    np.save("%s/mc_dn_dz/ch%d_m%d_mc_dn_dz_new.npy" % (data_path, ch, m), mc_flux)
     return mc_flux
 
 def main():

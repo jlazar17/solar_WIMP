@@ -6,7 +6,6 @@ ch       = int(args[1])
 m        = int(args[2])
 factor   = float(args[3])
 binning  = args[4] 
-nu_types = ["nu", "nuBar"]
 
 path   = "/home/jlazar/condor_logs/energy_delta_theta_hist_signal"
 error  = "%s/error" % path

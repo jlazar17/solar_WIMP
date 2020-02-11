@@ -205,11 +205,11 @@ def gammaCalc(dn_dz):
 
 def main():
     #dn_dz = loadFlux(nuType, ch, m)[nRun::SKIP]
-    
+    print("%s/e_d_theta_hist/ch%d_m%d_f%f_%s_energy_delta_theta_hist.npy" % (data_path, ch, m, rescale_factor, binning))
     #monteCarlo = loadMC(mcFile, nuType)
     #truncateMC(monteCarlo, nRun)
     numGammaTheta = gammaCalc(dn_dz)
-    np.save("%s/e_d_theta_hist/ch%d_m%d_f%f_%s_energy_delta_theta_hist.npy" % (data_path, ch, m, rescale_factor, binning), numGammaTheta)
+    np.save("%s/e_d_theta_hist/ch%d_m%d_f%f_%s_energy_delta_theta_hist.npy" % (data_path, ch, m, rescale_factor, binning), numGammaTheta.T[::-1])
     print("bang")
 
 

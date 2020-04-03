@@ -2,10 +2,26 @@ import numpy as np
 # from scipy.stats import gaussian_kde as kde
 from scipy.interpolate import griddata
 import os
-from sys import argv as args
+import argparse
 
-ch    = int(args[1])
-m     = int(args[2])
+##### SET UP COMMAND LINE ARGUMENTS #####
+parser = parser = argparse.ArgumentParser()
+parser.add_argument("--ch",
+                    type=int,
+                    help="WIMPSim channel number bb:5, WW:8, tautau:11"
+                   )
+parser.add_argument("-m",
+                    type=int,
+                    help="Dark matter mass"
+                   )
+parser.add_argument("--mc",
+                    type=str,
+                    help="path to Monte Carlo file to be used"
+                   )
+
+args = parser.parse_args()
+ch   = args.ch
+m    = args.m
 zens  = np.linspace(80, 180, 101)
 e_min = 10
 

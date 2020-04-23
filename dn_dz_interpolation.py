@@ -1,4 +1,5 @@
 import numpy as np
+import h5py
 # from scipy.stats import gaussian_kde as kde
 from scipy.interpolate import griddata
 import os
@@ -14,84 +15,44 @@ parser.add_argument("-m",
                     type=int,
                     help="Dark matter mass"
                    )
-parser.add_argument("--mc",
+parser.add_argument("--mcfile",
                     type=str,
-                    help="path to Monte Carlo file to be used"
+                    help="Path to monte carlo h5 file to be used"
+                   )
+parser.add_argument("--fluxfile",
+                    type=str,
+                    help="Path to flux file to be interpolated"
                    )
 
-args = parser.parse_args()
-ch   = args.ch
-m    = args.m
-zens  = np.linspace(80, 180, 101)
-e_min = 10
+def get_desc_name(path):
+    return path.split("/")[-1].split("_")[0]
 
-#import matplotlib.pyplot as plt
-#plt.style.use("paper.mplstyle")
+def interp_flux(mcfile, fluxfile):
 
-def set_data_path():
-    import re
-    global data_path
-    r = re.compile('cobalt.*.icecube.wisc.edu')
-    if r.match(os.popen('hostname').readline().rstrip("\n")) is not None:
-        data_path = "/data/user/jlazar/solar_WIMP/data/"
-    elif os.popen('hostname').readline().rstrip("\n")=='MBP-FVFXC6EKHV2D.local':
-        data_path = "/Users/jlazar/Documents/IceCube/data/"
-    else:
-        print("Machine not recognized")
-        quit()
+    nzen    = 100
+    ne      = 350
+    points  = [(i,j) for i in np.linspace(-1,0.2,nzen)
+              for j in np.logspace(2,6,ne)]
 
+    vals = np.log10(np.load(fluxfile))
+    vals = np.where(np.isinf(vals), -500, vals)
 
-def interp_dn_dz(ch, m):
+    h5f = h5py.File(mcfile, "r")
 
-    # Load data files
-    dN_dz  = np.load("%s/qr_dn_dz/ch%d_m%d_dn_dz.npy" % (data_path, ch, m))
-    mc     = np.load("%s/mcRecarray.npy" % data_path)
+    mcflux = np.power(10, np.where(h5f["PrimaryType"]["value"]==14,
+                                   # If condition is true use numu flux values
+                                   griddata(points, vals[0], list(zip(np.cos(h5f["NuZenith"]["value"]),h5f["NuEnergy"]["value"])), method="linear"),
+                                   # If condition is false use numubar flux values
+                                   griddata(points, vals[1], list(zip(np.cos(h5f["NuZenith"]["value"]),h5f["NuEnergy"]["value"])), method="linear"),
+                                  )
+                     )
+    return mcflux
 
-    # Get all quantities from dN_dE file arranged
-    nu_flux     = dN_dz[0]
-    nu_bar_flux = dN_dz[1]
-    n_zen       = nu_flux.shape[0]
-    n_en        = nu_flux.shape[1]
-    es          = np.tile(np.linspace(e_min, m, n_en), n_zen)
-    zs          = np.concatenate([np.full(n_en, zen) for zen in zens])
+def main(args):
+    mcflux    = interp_flux(args.mcfile, args.fluxfile)
+    desc_name = get_desc_name(args.fluxfile)
+    print(desc_name)
+    np.save("/data/user/jlazar/solar_WIMP/data/mc_flux/%s_mc_flux.npy" % desc_name, mcflux)
 
-    # Get all mc quantities ready
-    nu_i           = np.where(mc["i"]==14)[0]
-    nu_bar_i       = np.where(mc["i"]==-14)[0]
-    nu_e           = mc["nuE"][nu_i]
-    nu_bar_e       = mc["nuE"][nu_bar_i]
-    nu_zen         = np.degrees(mc["nuZen"][nu_i])
-    nu_bar_zen     = np.degrees(mc["nuZen"][nu_bar_i])
-
-
-    # Prepare points and values arrays
-    points        = np.vstack([es,zs]).T
-    nu_values     = np.log10(np.concatenate(nu_flux))
-    nu_bar_values = np.log10(np.concatenate(nu_bar_flux))
-
-    # Replace -infinities from log(0) with large neg values
-    nu_values[np.where(np.isinf(nu_values))]         = -500
-    nu_bar_values[np.where(np.isinf(nu_bar_values))] = -500
-
-    # Interpolate
-    nu_gd          = griddata(points, nu_values,     (nu_e, nu_zen),         method="linear")
-    nu_bar_gd      = griddata(points, nu_bar_values, (nu_bar_e, nu_bar_zen), method="linear")
-    nu_interp      = np.power(10, nu_gd)
-    nu_bar_interp  = np.power(10, nu_bar_gd)
-
-    nu_interp[np.where(nu_e>m)[0]]         = 0
-    nu_bar_interp[np.where(nu_bar_e>m)[0]] = 0
-
-    # Save interpolated fluxes
-    mc_flux           = np.zeros(len(mc["i"]))
-    mc_flux[nu_i]     = nu_interp
-    mc_flux[nu_bar_i] = nu_bar_interp
-    mc_flux[np.where(np.isnan(mc_flux))] = 0
-    np.save("%s/mc_dn_dz/ch%d_m%d_mc_dn_dz_new.npy" % (data_path, ch, m), mc_flux)
-    return mc_flux
-
-def main():
-    set_data_path()
-    interp_dn_dz(ch, m)
-
-main()
+if __name__=="__main__":
+    main(parser.parse_args())

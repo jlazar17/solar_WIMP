@@ -1,72 +1,68 @@
+import tables
 import numpy as np
 import solar_position_calc as sc
 from sys import argv as args
 import mc
 import os
 import argparse
+import h5py
 import gen_rescale_az_zen as gaz
+import weight_MC as wmc
+from file_gen import File_Gen
 
-##### SET UP COMMAND LINE ARGUMENTS #####
-parser = parser = argparse.ArgumentParser()
-parser.add_argument("-f",
-                    type=float,
-                    default=1.,
-                    help="factor to rescale MEOWS"
-                   )
-parser.add_argument("--ch",
-                    type=int,
-                    help="WIMPSim channel number bb:5, WW:8, tautau:11"
-                   )
-parser.add_argument("-m",
-                    type=int,
-                    help="Dark matter mass"
-                   )
-#parser.add_argument("-n",
-#                    type=int,
-#                    help="run number"
-#                   )
-#parser.add_argument("--nt",
-#                    type=str,
-#                    help="neutrino type (nu or nuBar)"
-#                   )
-parser.add_argument("--binning",
-                    type=str,
-                    help="bin width (f=0.5 degree, f=1.6 degrees)"
-                   )
+SKIP=1
 
-args           = parser.parse_args()
-rescale_factor = args.f
-ch             = args.ch
-m              = args.m
-#nuType         = args.nt
-#nRun           = args.n
-binning        = args.binning
-nRun=0
+def initialize_parser():
+    ##### SET UP COMMAND LINE ARGUMENTS #####
+    default_xs_location = "/data/user/jlazar/solar_WIMP/data/xs_splines/"
+    default_flux_location = "/data/user/jlazar/solar_WIMP/data/fluxes/"
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-f",
+                        type=float,
+                        default=1.,
+                        help="factor to rescale MEOWS"
+                       )
+    parser.add_argument("--ch",
+                        type=int,
+                        help="WIMPSim channel number bb:5, WW:8, tautau:11"
+                       )
+    parser.add_argument("-m",
+                        type=int,
+                        help="Dark matter mass"
+                       )
+    parser.add_argument("--binning",
+                        type=str,
+                        help="bin width (f=0.5 degree, f=1.6 degrees)"
+                       )
+    parser.add_argument("--mcfile",
+                        type=str,
+                        help="path to MC file"
+                       )
+    parser.add_argument("--flux",
+                        type=str,
+                        help="path to flux file"
+                       )
+    parser.add_argument("--fluxfile",
+                        type=str,
+                        help="path to flux file"
+                       )
+    parser.add_argument("--LICFile",
+                        type=str,
+                        help="path to LIC file used in generation of MC"
+                       )
+    parser.add_argument('--dsdxdy_nu_CC', default=default_xs_location+"dsdxdy_nu_CC_iso.fits")
+    parser.add_argument('--dsdxdy_nubar_CC', default=default_xs_location+"dsdxdy_nubar_CC_iso.fits")
+    parser.add_argument('--dsdxdy_nu_NC', default=default_xs_location+"dsdxdy_nu_NC_iso.fits")
+    parser.add_argument('--dsdxdy_nubar_NC', default=default_xs_location+"dsdxdy_nubar_NC_iso.fits")
+    parser.add_argument('--nuSQFluxKaon', default=default_flux_location+"kaon_atmospheric.hdf5")
+    parser.add_argument('--nuSQFluxPion', default=default_flux_location+"kaon_atmospheric.hdf5")
+    parser.add_argument("--nuSQFluxConv", default="/data/ana/SterileNeutrino/IC86/HighEnergy/Analysis/Fluxes/Flux_AIRS_sib_HG_th24_dm2/atmospheric_0_0.000000_0.000000_0.000000_0.000000_0.000000_0.000000.hdf5")
+    parser.add_argument('--OutFile', default="out")
+    return parser.parse_args()
 
-ms  = [200,300,400,500,600,700,800,900,1000,1500,2000,3000,4000,5000,6000,7000,8000,9000,10000]
-chans = [5,8,11]
-
-SKIP = 1
-
-np.random.seed(73)
-ri  = np.random.randint(100000, size=(len(chans), len(ms)))
-SEED_DICT = {chan:{} for chan in chans}
-for i, chan in enumerate(chans):
-    for j, mChi in enumerate(ms):
-        SEED_DICT[chan][mChi] = ri[i][j]
-SEED = SEED_DICT[ch][m]
-
-#if nuType=="nu":
-#    SEED = SEED_DICT[ch][m] + nRun
-#else:
-#    SEED = SEED_DICT[ch][m] - 1 - nRun
-
-np.random.seed(SEED)
-
-data_path    = "/data/user/jlazar/solar_WIMP/data/"
 rSun        = 6.9e10  # radius of sun in cm
-solarZenPdf = np.loadtxt("%s/solar_zenith_pdf.txt" % data_path)
-z           = np.radians(np.linspace(0, 179, 1800))
+#solarZenPdf = np.loadtxt("/data/user/jlazar/solar_WIMP/data/solar_zenith_pdf.txt")
+#z           = np.radians(np.linspace(0, 179, 1800))
 
 deltaT = 60. * 30. # sec
 jdStart = 2455349.5
@@ -75,85 +71,33 @@ nDays = jdEnd - jdStart
 nStep = deltaT / (3600. * 24.)
 jds = np.linspace(jdStart, jdEnd, int(nDays / nStep) + 1)
 azimuths = np.random.rand(len(jds)) * 2 * np.pi # solar azimuth positions
-zeniths = np.random.choice(z, len(jds), p=solarZenPdf) # solar zenith positions
+#zeniths = np.random.choice(z, len(jds), p=solarZenPdf) # solar zenith positions
+
+gammaBins = np.linspace(0, np.pi, 361) # bins of width one half degree
 
 binsPerDecade = 10
 highExp       = 6.5
 lowExp        = 0.5
 eBins         = np.logspace(lowExp, highExp, int(binsPerDecade * (highExp-lowExp) + 1))
-if binning=="c":
-    gammaBins = np.linspace(0, np.pi, 113) # 113 picked to best match binning on MEOWS wiki page
-elif binning=="f":
+
+def gammaCalc(oneweight, dn_dz, mcfile,  SKIP):
+    mc     = tables.File(mcfile, "r")
+    nu_e   = mc.root.NuEnergy[:]["value"][::SKIP]
+    nu_zen = mc.root.NuZenith[:]["value"][::SKIP]
+    nu_az  = mc.root.NuAzimuth[:]["value"][::SKIP]
+    reco_e = mc.root.MuExEnergy[:]["value"][::SKIP]
+    reco_zen = mc.root.MuExZenith[:]["value"][::SKIP]
+    reco_az  = mc.root.MuExAzimuth[:]["value"][::SKIP]
+   # else:
+   #     reco_az, reco_zen = gaz.gen_new_zen_az(rescale_factor)
+   #     reco_az = reco_az[::SKIP]
+   #     reco_zen = reco_zen[::SKIP]
     gammaBins = np.linspace(0, np.pi, 361) # bins of width one half degree
-
-
-
-##### LOAD MC INFORMATION #####
-mc   = np.load("/data/user/jlazar/solar_WIMP/data/mcRecarray.npy")
-#if nuType=="nu":
-#    indices = np.where(mc["i"]==14)[0]
-#else:
-#    indices = np.where(mc["i"]==-14)[0]
-#ow     = mc["oneWeight"][indices][nRun::SKIP]*1e-4
-#nu_e   = mc["nuE"][indices][nRun::SKIP]
-#nu_zen = mc["nuZen"][indices][nRun::SKIP]
-#nu_az  = mc["nuAz"][indices][nRun::SKIP]
-#reco_e = mc["recoE"][indices][nRun::SKIP]
-#if rescale_factor==1:
-#    print("Using MC reco angles")
-#    reco_zen = mc["recoZen"][indices][nRun::SKIP]
-#    reco_az  = mc["recoAz"][indices][nRun::SKIP]
-#else:
-#    print("Generating rescaled reco angles")
-#    reco_az, reco_zen = gaz.gen_new_zen_az(rescale_factor)
-#    reco_zen = reco_zen[indices][nRun::SKIP]
-#    reco_az  = reco_az[indices][nRun::SKIP]
-ow     = mc["oneWeight"][nRun::SKIP]*1e-4
-nu_e   = mc["nuE"][nRun::SKIP]
-nu_zen = mc["nuZen"][nRun::SKIP]
-nu_az  = mc["nuAz"][nRun::SKIP]
-reco_e = mc["recoE"][nRun::SKIP]
-if rescale_factor==1:
-    print("Using MC reco angles")
-    reco_zen = mc["recoZen"][nRun::SKIP]
-    reco_az  = mc["recoAz"][nRun::SKIP]
-else:
-    print("Generating rescaled reco angles")
-    reco_az, reco_zen = gaz.gen_new_zen_az(rescale_factor)
-    reco_zen = reco_zen[nRun::SKIP]
-    reco_az  = reco_az[nRun::SKIP]
-
-#dn_dz = np.load("%s/mc_dn_dz/ch%d_m%d_mc_dn_dz.npy" % (data_path, ch, m))[indices][nRun::SKIP]
-dn_dz = np.load("%s/mc_dn_dz/ch%d_m%d_mc_dn_dz.npy" % (data_path, ch, m))[nRun::SKIP]
-
-#def loadFlux(nuType, ch, m):
-#    mc_recarray = np.load("%s/mcRecarray.npy" % data_path)
-#    if nuType == "nu":
-#        i  = np.where(mc_recarray["i"]==14)[0]
-#        #return np.load("%s/ch%d_m%d_nu_mu_flux.npy" % (dataPath, ch, m))
-#    elif nuType == "nuBar":
-#        #return np.load("%s/ch%d_m%d_nu_mu_bar_flux.npy" % (dataPath, ch, m))
-#        i  = np.where(mc_recarray["i"]==-14)[0]
-#    return np.load("%s/mc_dn_dz/ch%d_m%d_mc_dn_dz.npy" % (data_path, ch, m))[i]
-#
-#
-#def loadMC(mc_rec_array_file, nuType):
-#    return mc.MonteCarlo(mcFile, nuType)
-#
-#
-#def truncateMC(monteCarlo, nRun):
-#    monteCarlo.setNuZen(monteCarlo.nuZen[nRun::SKIP])
-#    monteCarlo.setNuAz(monteCarlo.nuAz[nRun::SKIP])
-#    monteCarlo.setNuE(monteCarlo.nuE[nRun::SKIP])
-#    monteCarlo.setRecoZen(monteCarlo.recoZen[nRun::SKIP])
-#    monteCarlo.setRecoAz(monteCarlo.recoAz[nRun::SKIP])
-#    monteCarlo.setRecoE(monteCarlo.recoE[nRun::SKIP])
-#    monteCarlo.setOneWeight(monteCarlo.oneWeight[nRun::SKIP])
-
-
-def gammaCalc(dn_dz):
+    gammaBins = np.linspace(0, np.pi, 361) # bins of width one half degree
+    gammaBins = np.linspace(0, np.pi, 361) # bins of width one half degree
+    gammaBins = np.linspace(0, np.pi, 361) # bins of width one half degree
+    gammaBins = np.linspace(0, np.pi, 361) # bins of width one half degree
     numGammaTheta    = np.zeros((len(gammaBins)-1, len(eBins)-1))
-    print("boing")
     for i, jd in enumerate(jds):
         x = sc.nParameter(jd)
         obl = sc.solarObliquity(x)
@@ -174,23 +118,11 @@ def gammaCalc(dn_dz):
         m2 = np.logical_and((nu_az>amin%(2*np.pi)), nu_az<amax%(2*np.pi))
         m  = np.logical_and(m1, m2)
 
-        #print(rad)
-        #print("gamma_cut==%f" % gammaCut)
-        #print("zenith==%f" % zenith)
-        #print("azimuth==%f" %azimuths[i])
-        #print("dn_dz[m]=="+str(dn_dz[m]))
-        #print("ow[m]=="+str(ow[m]))
-        #print("nu_zen[m]=="+str(nu_zen[m]))
-        #print("nu_az[m]=="+str(nu_az[m]))
-        #quit()
-
         nu_gamma   = gaz.opening_angle(nu_zen[m], nu_az[m], zenith, azimuths[i])
         reco_gamma = gaz.opening_angle(reco_zen[m], reco_az[m], zenith, azimuths[i])
-        #monteCarlo.setTrueGamma(zeniths[i], azimuths[i])
-        #monteCarlo.setRecoGamma(zeniths[i], azimuths[i])
         n = np.where(nu_gamma <= gammaCut,
                      dn_dz[m] *                          \
-                     ow[m] *                             \
+                     oneweight[m] *                             \
                      (1. / solar_solid_angle) *       \
                      (1. / (4*np.pi*np.power(rad, 2))),
                      0
@@ -200,17 +132,61 @@ def gammaCalc(dn_dz):
         hist = np.histogram2d(reco_gamma, reco_e[m], bins=[gammaBins, eBins], weights=n)
         numGammaTheta += hist[0]
 
-    return numGammaTheta
+    return numGammaTheta*SKIP
+
+#def get_mcname(mcfile):
+#    if mcfile.split("/")[7]=="Systematics":
+#        mcname = mcfile.split("/")[8]
+#    else:
+#        mcname = "Nominal"
+#    return mcname
+
+def main(args, oneweight):
+    mcgf =  File_Gen(args.mcfile) 
+    dn_dz = np.load(mcgf.get_mc_dn_dz_path(args.flux))[::SKIP]
+    numGammaTheta = gammaCalc(oneweight, dn_dz, args.mcfile, SKIP)
+    fluxname = mcgf.get_mc_dn_dz_path(args.flux).split("/")[-1].split("_")[0]
+    mcname   = mcgf.get_mcname()
+    np.save("/data/user/jlazar/solar_WIMP/data/e_d_theta_hist/%s_%s_e_d_theta.npy" % (fluxname, mcname), numGammaTheta.T[::-1])
 
 
-def main():
-    #dn_dz = loadFlux(nuType, ch, m)[nRun::SKIP]
-    print("%s/e_d_theta_hist/ch%d_m%d_f%f_%s_energy_delta_theta_hist.npy" % (data_path, ch, m, rescale_factor, binning))
-    #monteCarlo = loadMC(mcFile, nuType)
-    #truncateMC(monteCarlo, nRun)
-    numGammaTheta = gammaCalc(dn_dz)
-    np.save("%s/e_d_theta_hist/ch%d_m%d_f%f_%s_energy_delta_theta_hist.npy" % (data_path, ch, m, rescale_factor, binning), numGammaTheta.T[::-1])
-    print("bang")
+if __name__=="__main__":
 
+    
+    args           = initialize_parser()
+    #rescale_factor = args.f
+    #ch             = args.ch
+    #m              = args.m
+    #binning        = args.binning
+    #mc_file        = args.mcfile
+    #flux_file      = args.fluxfile
+    mcgf = File_Gen(args.mcfile) 
+    SEED = abs(hash(mcgf.get_mc_dn_dz_path(args.flux))) % (2**32)
+    
+    np.random.seed(SEED)
+    
+    mc     = h5py.File(args.mcfile, "r")
+    try:
+        ow = mc["oneweight"]["value"][::SKIP]*1e-4
+    except:
+        ow = wmc.weight_mc(mcgf)[::SKIP]*1.e-4
+    
+    mc     = tables.File(args.mcfile, "r")
+    
+    nu_e   = mc.root.NuEnergy[:]["value"][::SKIP]
+    nu_zen = mc.root.NuZenith[:]["value"][::SKIP]
+    nu_az  = mc.root.NuAzimuth[:]["value"][::SKIP]
+    reco_e = mc.root.MuExEnergy[:]["value"][::SKIP]
+    reco_zen = mc.root.MuExZenith[:]["value"][::SKIP]
+    reco_az  = mc.root.MuExAzimuth[:]["value"][::SKIP]
+    #if rescale_factor==1:
+    #    print("Using MC reco angles")
+    #    reco_zen = mc.root.MuExZenith[:]["value"][::SKIP]
+    #    reco_az  = mc.root.MuExAzimuth[:]["value"][::SKIP]
+    #else:
+    #    print("Generating rescaled reco angles")
+    #    reco_az, reco_zen = gaz.gen_new_zen_az(rescale_factor)
+    #    reco_zen = reco_zen[::SKIP]
+    #    reco_az  = reco_az[::SKIP]
 
-main()
+    main(args,ow)

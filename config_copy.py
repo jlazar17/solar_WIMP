@@ -55,7 +55,7 @@ def DMSweFluxSun(Enu,neuflavor,ch,DMm,location = 'SunCtr',wimp_loc='Sun'):
         elif Enu/DMm > 0.9975:
             return 0.0
         else :
-            print "Interpolation error."
+            print("Interpolation error.")
             quit()
     else:
         #print "reloading DM initial flux"
@@ -440,12 +440,11 @@ def NuFlux_Solar(proflux,Enu_min,Enu_max,nodes,ch,DMm,param,theta_12=33.82,theta
 	#e_range = np.linspace(Enu_min*pc.GeV,Enu_max*pc.GeV,100)
 	if logscale is True:
 		e_vector = np.logspace(np.log10(Enu_min),np.log10(Enu_max),nodes)
+                print(e_vector[:100]/1.e9)
+                print(nodes)
 	else:
 		e_vector = np.linspace(Enu_min,Enu_max,nodes)
 	
-        print("Enu_min")
-        print(type(Enu_min))
-        print(Enu_min)
 
 	
 	if proflux == 'Pythia':

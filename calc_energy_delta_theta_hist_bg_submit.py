@@ -2,10 +2,29 @@ import pycondor
 import numpy as np
 import sys
 
-args       = sys.argv
-bgParticle = args[1]
-nuType     = args[2]
-binning    = args[3]
+import argparse
+##### SET UP COMMAND LINE ARGUMENTS #####
+parser = parser = argparse.ArgumentParser()
+parser.add_argument("--nt",
+                    type=str,
+                    help="neutrino type (nu or nuBar)"
+                   )
+parser.add_argument("--binning",
+                    type=str,
+                    help="bin width (f=0.5 degree, f=1.6 degrees)"
+                   )
+parser.add_argument("--bgparticle",
+                    type=str,
+                    help="bin width (f=0.5 degree, f=1.6 degrees)"
+                   )
+args = parser.parse_args()
+bgParticle = args.bgparticle
+nuType     = args.nt
+binning    = args.binning
+#args       = sys.argv
+#bgParticle = args[1]
+#nuType     = args[2]
+#binning    = args[3]
 
 path   = "/home/jlazar/condor_logs/energy_delta_theta_hist_bg"
 error  = "%s/error" % path

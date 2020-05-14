@@ -1,11 +1,7 @@
 import pycondor
 import numpy as np
 from sys import argv as args
-
-ch       = int(args[1])
-m        = int(args[2])
-factor   = float(args[3])
-binning  = args[4] 
+from controls import chs, ms, mcfiles
 
 path   = "/home/jlazar/condor_logs/energy_delta_theta_hist_signal"
 error  = "%s/error" % path
@@ -13,31 +9,30 @@ output = "%s/output" % path
 log    = "%s/log" % path
 submit = "%s/submit" % path
 
-run     = pycondor.Job("ch%s_m%s_energy_delta_theta_hist_signal" % (ch, m), 
-           "/data/user/jlazar/solar_WIMP/get_energy_delta_theta_hist_signal.sh", 
+xlines = ["request_memory = (NumJobStarts is undefined) ? 2 * pow(2, 10) : 2048 * pow(2, NumJobStarts + 1)",
+          "periodic_release = (HoldReasonCode =?= 21 && HoldReasonSubCode =?= 1001) || HoldReasonCode =?= 21",
+          "periodic_remove = (JobStatus =?= 5 && (HoldReasonCode =!= 34 && HoldReasonCode =!= 21)) || (RequestMemory > 13192)"
+         ]
+
+dagman = pycondor.Dagman("e_d_theta", submit=submit, verbose=2)
+run     = pycondor.Job("energy_delta_theta_hist_signal", 
+           "/data/user/jlazar/solar_WIMP/calc_energy_delta_theta_hist_signal.sh", 
            error=error, 
            output=output, 
            log=log, 
            submit=submit, 
            universe="vanilla", 
-           notification="never"
+           notification="never",
+           dag=dagman,
+           verbose=2,
+           extra_lines=xlines
           )
-run.add_arg("%s %s %s %s" % (ch, m, factor, binning))
-run.build()
 
-#run_ns = [ int(i) for i in np.linspace(0,24,25) ]
-#
-#
-#for nt in nu_types:
-#    run     = pycondor.Job("ch%s_m%s_%s_energy_delta_theta_hist_signal" % (ch, m, nt), 
-#               "/data/user/jlazar/solar_WIMP/get_energy_delta_theta_hist_signal.sh", 
-#               error=error, 
-#               output=output, 
-#               log=log, 
-#               submit=submit, 
-#               universe="vanilla", 
-#               notification="never"
-#              )
-#    for n in run_ns:
-#        run.add_arg("%s %s %s %s %s %s" % (n, nt, ch, m, factor, binning))
-#    run.build()
+fluxes = [f"ch{ch}-m{m}" for ch in chs for m in ms]
+print(fluxes)
+
+for mcfile in mcfiles:
+    for flux in fluxes:
+       run.add_arg(f"{mcfile} {flux}") 
+
+dagman.build()

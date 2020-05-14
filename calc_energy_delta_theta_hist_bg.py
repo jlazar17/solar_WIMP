@@ -3,13 +3,47 @@ import solar_position_calc as sc
 import sys
 import mc
 
-args = sys.argv
+#args = sys.argv
+#
+#nRun       = int(args[1])
+#bgParticle = args[2]
+#nuType     = args[3]
+#binning    = args[4]
+#h5File     = "/data/user/jlazar/solar_WIMP/data/mcRecarray.npy"
 
-nRun       = int(args[1])
-bgParticle = args[2]
-nuType     = args[3]
-binning    = args[4]
-h5File     = "/data/user/jlazar/solar_WIMP/data/mcRecarray.npy"
+import argparse
+import gen_rescale_az_zen as gaz
+
+##### SET UP COMMAND LINE ARGUMENTS #####
+parser = parser = argparse.ArgumentParser()
+parser.add_argument("--bgparticle",
+                    type=str,
+                    help="type of background particle ('kaon', 'kaon_bar', 'pion', 'pion_bar')"
+                   )
+parser.add_argument("-f",
+                    type=float,
+                    default=1.,
+                    help="factor to rescale MEOWS"
+                   )
+parser.add_argument("-n",
+                    type=int,
+                    help="run number"
+                   )
+parser.add_argument("--nt",
+                    type=str,
+                    help="neutrino type (nu or nuBar)"
+                   )
+parser.add_argument("--binning",
+                    type=str,
+                    help="bin width (f=0.5 degree, f=1.6 degrees)"
+                   )
+
+args           = parser.parse_args()
+rescale_factor = args.f
+nuType         = args.nt
+nRun           = args.n
+binning        = args.binning
+bgParticle     = args.bgparticle
 
 SKIP = 10
 SEED = 111255

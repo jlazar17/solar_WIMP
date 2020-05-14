@@ -1,9 +1,21 @@
 import pycondor
 import numpy as np
-from sys import argv as args
+import argparse
 
-m = int(args[1])
-chs      = ["bb", "WW", "tautau"]
+##### SET UP COMMAND LINE ARGUMENTS #####
+parser = argparse.ArgumentParser()
+#parser.add_argument("--mc_file",
+#                    type=str,
+#                    help="Monte Carlo file"
+#                   )
+parser.add_argument("-m",
+                    type=int,
+                    help="Dark matter mass"
+                   )
+
+args    = parser.parse_args()
+m       = args.m 
+chs     = [5, 8, 11]
 
 path   = "/home/jlazar/condor_logs/detector_flux"
 error  = "%s/error" % path
@@ -22,6 +34,6 @@ for ch in chs:
                universe="vanilla", 
                notification="never"
               )
-    run.add_arg("%s %s %s" % (ch, m, outfile))
+    run.add_arg("%s %s" % (ch, m))
     run.build()
 #run.build_submit()

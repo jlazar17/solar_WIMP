@@ -105,7 +105,7 @@ def main(args):
     mcname = get_mcname(args.mcfile)
     print(mcname)
     print(fluxname)
-    savepath = "/data/user/jlazar/solar_WIMP/data/mc_dn_dz/%s_%s.npy" % (fluxname, mcname)
-    interp_dn_dz(args, savepath)
+    savepath = "/data/user/jlazar/solar_WIMP/data/mc_dn_dz/%s_%s_dn_dz.npy" % (fluxname, mcname)
+    interp_dn_dz(args, savepath) self.mub,
 
 main(parser.parse_args())

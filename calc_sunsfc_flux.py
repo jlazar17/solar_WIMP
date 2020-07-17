@@ -1,64 +1,83 @@
 import numpy as np
 import matplotlib as mpl
 mpl.use("Agg")
-import config_copy
-from sys import argv as args
-from physicsconstants import PhysicsConstants
+import argparse
 import os
+
+import config_copy
+from physicsconstants import PhysicsConstants
 
 param = PhysicsConstants()
 
-ch = args[1]
-m  = int(args[2])
-
+qr_ch_dict = {5:"bb", 8:"WW", 11:"tautau"}
 ws_chan_dict = {"bb":5, "WW":8, "tautau":11}
 
-theta_12   = 33.82 # degrees
-theta_23   = 49.7 # degrees
-theta_13   = 8.61 # degrees
-delta_m_12 = 7.39e-5 # eV^2
-delta_m_13 = 2.525e-3 # eV^2
-delta      = 0 # degrees
-
 e_min     = 10 # GeV
-e_max     = m # GeV
 nodes     = 200
 xsec_path = '/data/user/qliu/DM/GOLEMTools/sources/nuSQuIDS/data/xsections/'
+data_path = "/Users/jlazar/Documents/IceCube/data/"
 
-def set_data_path():
-    import re
-    import os
-    global data_path
-    r = re.compile('cobalt.*.icecube.wisc.edu')
-    if os.popen('hostname').readline().rstrip("\n")=='dyn-8-50.icecube.wisc.edu':
-        data_path = "/Users/jlazar/Documents/IceCube/data/"
-    else:
-        data_path = "/data/user/jlazar/solar_WIMP/data/"
+def initialize_parser():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--ch",
+                        type=int,
+                        help="WIMPSim channel number bb:5, WW:8, tautau:11"
+                       )
+    parser.add_argument("-m",
+                        type=int,
+                        help="Dark matter mass"
+                       )
+    
+    parser.add_argument("--theta_12",
+                        type=float,
+                        default=33.82
+                       )
+    parser.add_argument("--theta_23",
+                        type=float,
+                        default=48.3
+                       )
+    parser.add_argument("--theta_13",
+                        type=float,
+                        default=8.61
+                       )
+    parser.add_argument("--delta_m_12",
+                        type=float,
+                        default=7.39e-5
+                       )
+    parser.add_argument("--delta_m_13",
+                        type=float,
+                       )
+    parser.add_argument("--delta",
+                        type=float,
+                        default=2.523e-3
+                       )
+    args = parser.parse_args()
+    return args
 
-set_data_path()
 
+if __name__=='__main__':
+    args       = initialize_parser()
+    e_min      = 10 # GeV
+    ch         = args.ch
+    m          = args.m
+    e_max     = m # GeV
+    theta_12   = args.theta_12
+    theta_13   = args.theta_13
+    theta_23   = args.theta_23
+    delta_m_12 = args.delta_m_12
+    delta_m_13 = args.delta_m_13
+    delta      = args.delta
+    nodes      = 200
+    fname = '%d_%d_%f_%f_%f_%f_%f_%f.npy' % (ch, m, theta_12, theta_13, theta_23, delta_m_12, delta_m_13, delta)
+    print(fname)
+    #dn_dz = config_copy.NuFlux_Solar("Pythia", e_min, e_max, nodes, qr_ch_dict[ch], m, param,
+    #                            theta_12=theta_12, theta_13=theta_13, theta_23=theta_23,
+    #                            delta=delta, delta_m_12=delta_m_12, delta_m_13=delta_m_13,
+    #                            interactions=True, xsec=xsec_path, location="detector")
+    dn_dz = config_copy.NuFlux_Solar("Pythia", e_min, e_max, nodes, qr_ch_dict[ch], m, param,
+                                theta_12=theta_12, theta_13=theta_13, theta_23=theta_23,
+                                delta=delta, delta_m_12=delta_m_12, delta_m_13=delta_m_13,
+                                interactions=True, location="detector")
 
-ch_num = ws_chan_dict[ch]
-dn_dz = np.zeros((2, nodes))
-f = config_copy.NuFlux_Solar("Pythia", e_min, e_max, nodes, ch, m, param,
-                            theta_12=theta_12, theta_13=theta_13, theta_23=theta_23,
-                            delta=delta, delta_m_12=delta_m_12, delta_m_13=delta_m_13,
-                            interactions=True, xsec=xsec_path, location="detector")
-nu_mu_dn_dz     = np.asarray([tup[2] for tup in f]) * float(m)
-nu_mu_bar_dn_dz = np.asarray([tup[5] for tup in f]) * float(m)
-dn_dz[0][:] = nu_mu_dn_dz
-dn_dz[1][:] = nu_mu_bar_dn_dz
+    np.save('/data/user/jlazar/solar_WIMP/data/param_uncertainty/%s' % fname, dn_dz)
 
-dn_dz_old = np.zeros((2, nodes))
-f = config.NuFlux_Solar("Pythia", e_min, e_max, nodes, ch, m, param,
-                            theta_12=theta_12, theta_13=theta_13, theta_23=theta_23,
-                            delta=delta, delta_m_12=delta_m_12, delta_m_13=delta_m_13,
-                            interactions=True, xsec=xsec_path, location="Earth")
-nu_mu_dn_dz     = np.asarray([tup[2] for tup in f]) * float(m)
-nu_mu_bar_dn_dz = np.asarray([tup[5] for tup in f]) * float(m)
-dn_dz_old[0][:] = nu_mu_dn_dz
-dn_dz_old[1][:] = nu_mu_bar_dn_dz
-#np.save("%s/qr_dn_dz/ch%d_m%d_dn_dz.npy" % (data_path, ch_num, m), dn_dz)
-np.save("data/ch%d_m%d_dn_dz_det.npy" % (ws_chan_dict[ch], m), dn_dz)
-np.save("data/ch%d_m%d_dn_dz_det_old.npy" % (ws_chan_dict[ch], m), dn_dz_old)
-np.save("plz.npy", dn_dz)

@@ -70,5 +70,7 @@ def calc_flux(ch, m, params):
 #    return dn_dz.T
 
 if __name__=="__main__":
+    print('Doing calc...')
     dn_dz = calc_flux(args.ch, args.m, param)
+    print('saving file to /data/user/jlazar/solar_WIMP/data/qr_dn_dz/ch%d-m%d_dn_dz.np' % (args.ch, args.m))
     np.save("/data/user/jlazar/solar_WIMP/data/qr_dn_dz/ch%d-m%d_dn_dz.npy" % (args.ch, args.m), dn_dz)

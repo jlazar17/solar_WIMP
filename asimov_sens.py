@@ -211,6 +211,7 @@ def plot(params, ch, m_inj, xs_inj):
     pcm = ax.pcolor(X, Y, plouts,
                      norm=colors.LogNorm(vmin=1e-2, vmax=plouts.max()),
                      cmap="PuBu",
+                     vmin=1e-3
                    )
     
     levels=[2.27886544, 2.9955]

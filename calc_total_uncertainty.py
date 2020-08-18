@@ -3,10 +3,10 @@ import argparse
 import emcee
 
 import nuSQUIDSpy as nsq
-from charon import charon
+import charon
 from uncertainty_controls import ee, CC_central, CC_err_up, CC_err_down, qr_ch_dict 
-import charon.physicsconstants as PC
-pc = PC.PhysicsConstants()
+from physicsconstants import PhysicsConstants
+pc = PhysicsConstants() 
 
 def initialize_parser():
     parser = argparse.ArgumentParser()
@@ -26,6 +26,11 @@ def initialize_parser():
                         type=int,
                         help='number of things to simulate. Default is 100',
                         default=100
+                       )
+    parser.add_argument('--pythia',
+                        type=bool,
+                        default=False,
+                        help='force using PYTHIA instead of BRW. BRW must be used below 100 GeV'
                        )
     args = parser.parse_args()
     return args
@@ -57,7 +62,7 @@ def lnprob(theta, mus, sigma0s, sigma1s, ):
         vals[i] = np.log(assymmetric_gaussian(*tup))
     return np.sum(vals[np.isfinite(vals)])
 
-def get_osc_params(mus, sigmas, nwalkers=1000, nsteps=500):
+def make_osc_params(mus, sigmas, nwalkers=1000, nsteps=500):
     ndim = len(mus)
     pos = [mus + 1e-3*mus*np.random.randn(ndim) for i in range(nwalkers)]
     sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args=(mus, sigmas[0], sigmas[1]))
@@ -69,28 +74,52 @@ def get_osc_params(mus, sigmas, nwalkers=1000, nsteps=500):
 def calc_flux(ch, m, theta_12, theta_23, theta_13, delta_m_12, delta_m_13, delta, xsec, e_min, nodes, param):
     e_max = m
     dn_dz = np.zeros((2, nodes))
-    flux = charon.NuFlux("Pythia", e_min, e_max, nodes, qr_ch_dict[ch], m, param,
-                         theta_12=theta_12, theta_13=theta_13, theta_23=theta_23,
-                         delta=delta, delta_m_12=delta_m_12, delta_m_13=delta_m_13,
-                         interactions=True, xsec=xsec)
-    sun_flux   = Flux.Sun('detector', zenith=0., avg=True)
-    earth_flux = flux.Earth('detector', average=True)
-    halo_flux= Flux.Halo('detector',zenith=np.pi)
+    if use_pythia:
+        ws2qr = {5:'bb', 8:'WW', 11:'tautau'}
+        flux_path = '/data/user/qliu/DM/DMFlux/Pythia/no_EW/secluded/Sun/results/%s_%d_Sun.dat' % (ws2qr[ch], m)
+        flux = charon.NuFlux(qr_ch_dict[ch], m, nodes, Emin=e_min, Emax=e_max, process='ann',
+                             theta_12=theta_12, theta_13=theta_13, theta_23=theta_23,
+                             delta=delta, delta_m_12=delta_m_12, delta_m_13=delta_m_13,
+                             interactions=True, xsec=xsec, bins=200, pathFlux=flux_path
+                            )
+    else:
+        flux = charon.NuFlux(qr_ch_dict[ch], m, nodes, Emin=e_min, Emax=e_max, process='ann',
+                             theta_12=theta_12, theta_13=theta_13, theta_23=theta_23,
+                             delta=delta, delta_m_12=delta_m_12, delta_m_13=delta_m_13,
+                             interactions=True, xsec=xsec, bins=200
+                            )
+    sun_flux   = flux.Sun('detector', zenith=0., avg=True)
+    earth_flux = flux.Earth('detector', avg=True)
+    halo_flux= flux.Halo('detector',zenith=np.pi)
                            
     return sun_flux, earth_flux, halo_flux
 
-def main(ch, m, ordering, nwalkers, param):
+def main(ch, m, ordering, nwalkers, param, use_pythia):
 
     savedir = '/data/user/jlazar/solar_WIMP/data/total_uncertainties/'    
 
-    mus, sigmas = get_emcee_params(ordering)
-    osc_params = get_osc_params(mus, sigmas, nwalkers=nwalkers)
-
+    mus, sigmas = make_emcee_params(ordering)
+    
+    osc_params = make_osc_params(mus, sigmas, nwalkers=nwalkers)
+    
+    th12, th23, th13, delta, m12, m13, xs_scale = tuple(mus)
+    xsec=nsq.ScaledNeutrinoCrossSections('/home/jlazar/programs/GOLEM_SOLAR_WIMP_py2/sources/nuSQuIDS/data/xsections/csms.h5', ee, [xs_scale])
+    nominal_sun, nominal_earth, nominal_halo = calc_flux(ch, m, th12, th23, th13, m12, m13, delta, xsec, 10, 200, param)
+    if use_pythia:
+        np.save("%s/sun/%d_%d_%s_nominal_pythia.npy" % (savedir, ch, m, ordering), nominal_sun)
+        np.save("%s/earth/%d_%d_%s_nominal_pythia.npy" % (savedir, ch, m, ordering), nominal_earth)
+        np.save("%s/halo/%d_%d_%s_nominal_pythia.npy" % (savedir, ch, m, ordering), nominal_halo)
+    else:
+        np.save("%s/sun/%d_%d_%s_nominal.npy" % (savedir, ch, m, ordering), nominal_sun)
+        np.save("%s/earth/%d_%d_%s_nominal.npy" % (savedir, ch, m, ordering), nominal_earth)
+        np.save("%s/halo/%d_%d_%s_nominal.npy" % (savedir, ch, m, ordering), nominal_halo)
     for osc_param in osc_params:
         th12, th23, th13, delta, m12, m13, xs_scale = tuple(osc_param)
-        xsec=nsq.ScaledNeutrinoCrossSections('/home/jlazar/programs/GOLEM_SOLAR_WIMP/sources/nuSQuIDS/data/xsections/csms.h5', ee, [xs_scale])
-        savefname = '%d_%d_%s_%f_%f_%f_%f_%f_%f.npy' % (ch, m, ordering, th12, th23, th13, m12, m13, delta)
-        print(savefname)
+        xsec=nsq.ScaledNeutrinoCrossSections('/home/jlazar/programs/GOLEM_SOLAR_WIMP_py2/sources/nuSQuIDS/data/xsections/csms.h5', ee, [xs_scale])
+        if use_pythia:
+            savefname = '%d_%d_%s_%f_%f_%f_%f_%f_%f_pythia.npy' % (ch, m, ordering, th12, th23, th13, m12, m13, delta)
+        else:
+            savefname = '%d_%d_%s_%f_%f_%f_%f_%f_%f.npy' % (ch, m, ordering, th12, th23, th13, m12, m13, delta)
         sun_flux, earth_flux, halo_flux = calc_flux(ch, m, th12, th23, th13, m12, m13, delta, xsec, 10, 200, param)
         np.save("%s/sun/%s" % (savedir, savefname), sun_flux)
         np.save("%s/earth/%s" % (savedir, savefname), earth_flux)
@@ -102,6 +131,8 @@ if __name__=='__main__':
     m         = args.m
     ordering  = args.ordering
     nwalkers  = args.n
+    use_pythia = args.pythia
+
     seed = (hash(str(ch)+str(m)+ordering)+2) % 2**32
     np.random.seed(seed)
-    main(ch, m, ordering, nwalkers, pc)
+    main(ch, m, ordering, nwalkers, pc, use_pythia)

@@ -1,20 +1,28 @@
 import numpy as np
 from numpy import cos as c
 from numpy import sin as s
+import h5py
+from scipy.interpolate import splrep
 
+np.random.seed(69420)
 
-mc       = np.load("/data/user/jlazar/solar_WIMP/data/mcRecarray.npy")
-nu_e     = mc["nuE"]
-nu_zen   = mc["nuZen"]
-nu_az    = mc["nuAz"]
-reco_e   = mc["recoE"]
-reco_zen = mc["recoZen"]
-reco_az  = mc["recoAz"]
+mcfile = '/data/ana/SterileNeutrino/IC86/HighEnergy/SPE_Templates/Nominal/Ares/IC86.AVG/Merged/Ares_IC86.AVG_0.97_lite_platinum_98000.h5'
+mc       = h5py.File(mcfile, 'r')
+nu_e     = mc["NuEnergy"]
+nu_zen   = mc["NuZenith"]
+nu_az    = mc["NuAzimuth"]
+reco_e   = mc["MuExEnergy"]
+reco_zen = mc["MuExZenith"]
+reco_az  = mc["MuExAzimuth"]
 
 def meows_error(e):
     spl    = np.load("data/MEOWS_median_error_spline.npy").item()
     log10e = np.log10(e)
     return np.power(10, spl(log10e))
+
+def thry_error(e):
+    tck = np.load('data/3y_ang_error_spline.npy', allow_pickle=True)
+    return splev(np.log(e), tck)
 
 def opening_angle(zen1, az1, zen2, az2):
     return np.arccos(np.sin(zen1)*np.sin(zen2)*np.cos(az1-az2)+np.cos(zen1)*np.cos(zen2))
@@ -48,7 +56,8 @@ def rot2(nu_az, nu_zen, gen_az, gen_zen):
 def rotate_coords(nu_az, nu_zen, gen_az, gen_zen):
     return rot2(nu_az, nu_zen, *rot1(nu_az,nu_zen, gen_az, gen_zen))
 
-def gen_new_zen_az(scale):
+def gen_new_zen_az(e):
+    scale           = thry_error(e)/meows_error(e)
     opening_angles  = opening_angle(nu_zen, nu_az, reco_zen, reco_az)
     gen_zen         = opening_angles * scale
     gen_az          = np.random.rand(len(opening_angles))*2*np.pi

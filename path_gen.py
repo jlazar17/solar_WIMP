@@ -35,8 +35,11 @@ class PathGen():
     def get_mcpath(self):
         return self.mcpath
 
-    def get_e_d_theta_path(self, fluxtype):
-        return '/data/user/jlazar/solar_WIMP/data/e_d_theta_hist/%s_%s_e_d_theta.npy' % (fluxtype, self.get_mcname())
+    def get_e_d_theta_path(self, fluxtype, rescale):
+        if not rescale:
+            return '/data/user/jlazar/solar_WIMP/data/e_d_theta_hist/%s_%s_e_d_theta.npy' % (fluxtype, self.get_mcname())
+        else:
+            return '/data/user/jlazar/solar_WIMP/data/e_d_theta_hist/%s_%s_e_d_theta_rescale.npy' % (fluxtype, self.get_mcname())
 
     def get_uninterp_flux_path(self, fluxtype):
         if fluxtype=='conv-numu':

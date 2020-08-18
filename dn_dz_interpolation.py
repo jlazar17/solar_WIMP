@@ -59,8 +59,14 @@ def interp_dn_dz(args, savepath):
     nu_flux     = dN_dz[0]
     nu_bar_flux = dN_dz[1]
     n_zen       = nu_flux.shape[0]
-    n_en        = nu_flux.shape[1]
-    es          = np.tile(np.linspace(e_min, args.m, n_en), n_zen)
+    if args.m is not None:
+        n_en        = nu_flux.shape[1]
+        es          = np.tile(np.linspace(e_min, args.m, n_en), n_zen)
+    else:
+        e = np.genfromtxt('data/solar_atm/PostPropagation/SIBYLL2.3_pp_CombinedGHAndHG_H4a_nu.txt')[:,0]
+        n_en = len(e)
+        print(e)
+        es = np.tile(e, n_zen)
     zs          = np.concatenate([np.full(n_en, zen) for zen in zens])
     # Prepare points and values arrays
     points        = np.vstack([es,zs]).T
@@ -68,7 +74,6 @@ def interp_dn_dz(args, savepath):
     nu_bar_values = np.log10(np.concatenate(nu_bar_flux))
     for chunk in chunks:
         # Load data files
-        # Get all quantities  from dN_dE file arranged
 
         # Get all mc quantities ready
         nu_i           = np.where(mc.root.PrimaryType[chunk]["value"]==14)[0]
@@ -89,23 +94,25 @@ def interp_dn_dz(args, savepath):
         nu_bar_gd      = griddata(points, nu_bar_values, (nu_bar_e, nu_bar_zen), method="linear")
         nu_interp      = np.power(10, nu_gd)
         nu_bar_interp  = np.power(10, nu_bar_gd)
-
-        nu_interp[np.where(nu_e>args.m)[0]]         = 0
-        nu_bar_interp[np.where(nu_bar_e>args.m)[0]] = 0
+        
+        if args.m is not None:
+            nu_interp[np.where(nu_e>args.m)[0]]         = 0
+            nu_bar_interp[np.where(nu_bar_e>args.m)[0]] = 0
 
         # Save interpolated fluxes
         mc_flux[chunk][nu_i]     = nu_interp
         mc_flux[chunk][nu_bar_i] = nu_bar_interp
         mc_flux[np.where(np.isnan(mc_flux))] = 0
-    np.save(savepath,  mc_flux)
     return mc_flux
 
 def main(args):
     fluxname = args.fluxfile.split("/")[-1].split("_")[0]
     mcname = get_mcname(args.mcfile)
-    print(mcname)
-    print(fluxname)
-    savepath = "/data/user/jlazar/solar_WIMP/data/mc_dn_dz/%s_%s_dn_dz.npy" % (fluxname, mcname)
-    interp_dn_dz(args, savepath) self.mub,
+    if fluxname=='SIBYLL2.3':
+        savepath = "/data/user/jlazar/solar_WIMP/data/solar_atm/AtIceCube/interped/%s_%s.npy" % (fluxname, mcname)
+    else:
+        savepath = "/data/user/jlazar/solar_WIMP/data/mc_dn_dz/%s_%s_dn_dz.npy" % (fluxname, mcname)
+    mc_flux = interp_dn_dz(args, savepath)
+    np.save(savepath,  mc_flux)
 
 main(parser.parse_args())

@@ -1,7 +1,7 @@
 figure.figsize   : 10, 10   # figure size in inches
 savefig.dpi      : 600      # figure dots per inch
 savefig.bbox     : tight
-font.size: 32
+font.size: 28
 font.family: serif
 font.serif: Computer Modern, Latin Modern Roman, Bitstream Vera Serif
 text.usetex: True

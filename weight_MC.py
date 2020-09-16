@@ -67,38 +67,68 @@ def weight_mc(mcgf,save=False):
     mc  = tables.File(mcgf.mcpath)
     weights = np.zeros(mc.root.FinalStateX.shape[0])
     chunks  = chonk_h5file(mcgf)
-    for chunk in chunks:
-        chunk_weights = np.zeros(int(chunk.stop-chunk.start))
-        events = zip(
-                     mc.root.FinalStateX[chunk]['value'],
-                     mc.root.FinalStateY[chunk]['value'],
-                     mc.root.FinalType0[chunk]['value'],
-                     mc.root.FinalType1[chunk]['value'],
-                     mc.root.NuAzimuth[chunk]['value'],
-                     mc.root.NuZenith[chunk]['value'],
-                     mc.root.NuEnergy[chunk]['value'],
-                     mc.root.PrimaryType[chunk]['value'],
-                     mc.root.TotalColumnDepth[chunk]['value'],
-                    )
-         
-        for i, event in enumerate(events):
-            LWevent                        = LW.Event()
-            LWevent.interaction_x          = event[0]
-            LWevent.interaction_y          = event[1]
-            LWevent.final_state_particle_0 = LW.ParticleType(event[2])
-            LWevent.final_state_particle_1 = LW.ParticleType(event[3])
-            LWevent.azimuth                = event[4]
-            LWevent.zenith                 = event[5]
-            LWevent.energy                 = event[6]
-            LWevent.primary_type           = LW.ParticleType(event[7])
-            LWevent.total_column_depth     = event[8]
-            LWevent.x                      = 0.
-            LWevent.y                      = 0.
-            LWevent.z                      = 0.
-    
-            chunk_weights[i] = weighter.get_oneweight(LWevent)/2.
-    
-        weights[chunk.start:chunk.stop] = chunk_weights
+    events = zip(
+                 mc.root.FinalStateX[:]['value'],
+                 mc.root.FinalStateY[:]['value'],
+                 mc.root.FinalType0[:]['value'],
+                 mc.root.FinalType1[:]['value'],
+                 mc.root.NuAzimuth[:]['value'],
+                 mc.root.NuZenith[:]['value'],
+                 mc.root.NuEnergy[:]['value'],
+                 mc.root.PrimaryType[:]['value'],
+                 mc.root.TotalColumnDepth[:]['value'],
+                )
+     
+    for i, event in enumerate(events):
+        LWevent                        = LW.Event()
+        LWevent.interaction_x          = event[0]
+        LWevent.interaction_y          = event[1]
+        LWevent.final_state_particle_0 = LW.ParticleType(event[2])
+        LWevent.final_state_particle_1 = LW.ParticleType(event[3])
+        LWevent.azimuth                = event[4]
+        LWevent.zenith                 = event[5]
+        LWevent.energy                 = event[6]
+        LWevent.primary_type           = LW.ParticleType(event[7])
+        LWevent.total_column_depth     = event[8]
+        LWevent.x                      = 0.
+        LWevent.y                      = 0.
+        LWevent.z                      = 0.
+        weighter.get_oneweight(LWevent)
+        weights[i] = weighter.get_oneweight(LWevent)
+
+    #for chunk in chunks:
+    #    chunk_weights = np.zeros(int(chunk.stop-chunk.start))
+    #    events = zip(
+    #                 mc.root.FinalStateX[chunk]['value'],
+    #                 mc.root.FinalStateY[chunk]['value'],
+    #                 mc.root.FinalType0[chunk]['value'],
+    #                 mc.root.FinalType1[chunk]['value'],
+    #                 mc.root.NuAzimuth[chunk]['value'],
+    #                 mc.root.NuZenith[chunk]['value'],
+    #                 mc.root.NuEnergy[chunk]['value'],
+    #                 mc.root.PrimaryType[chunk]['value'],
+    #                 mc.root.TotalColumnDepth[chunk]['value'],
+    #                )
+    #     
+    #    for i, event in enumerate(events):
+    #        LWevent                        = LW.Event()
+    #        LWevent.interaction_x          = event[0]
+    #        LWevent.interaction_y          = event[1]
+    #        LWevent.final_state_particle_0 = LW.ParticleType(event[2])
+    #        LWevent.final_state_particle_1 = LW.ParticleType(event[3])
+    #        LWevent.azimuth                = event[4]
+    #        LWevent.zenith                 = event[5]
+    #        LWevent.energy                 = event[6]
+    #        LWevent.primary_type           = LW.ParticleType(event[7])
+    #        LWevent.total_column_depth     = event[8]
+    #        LWevent.x                      = 0.
+    #        LWevent.y                      = 0.
+    #        LWevent.z                      = 0.
+    #
+    #        chunk_weights[i] = weighter.get_oneweight(LWevent)
+    #        print(chunk_weights)
+    #
+    #    weights[chunk.start:chunk.stop] = chunk_weights
     
     
     if save:

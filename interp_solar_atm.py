@@ -33,5 +33,5 @@ class Interpolator():
         plt.close()
 
 if __name__=='__main__':
-    i = Interpolator('data/solar_atm_spectrum.csv')
+    i = Interpolator('/data/user/jlazar/solar_WIMP/data/solar_atm_spectrum.csv')
     i.make_check_plot()

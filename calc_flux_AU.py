@@ -25,7 +25,7 @@ def initialize_args():
     args = parser.parse_args()
     return args
 
-n_zen = 101
+n_zen = 11
 zens  = np.linspace(80, 180, n_zen)
 
 qr_ch_dict = {5:"bb", 8:"WW", 11:"tautau"}
@@ -45,22 +45,24 @@ nodes     = 200
 
 
 def calc_flux(ch, m, gen, params):
-    dn_dz = np.zeros((2, n_zen, nodes))
+    dn_dz = np.zeros((2, len(zens), nodes))
+    if gen=='BRW':
+        print('cool')
+        flux = propa.NuFlux(qr_ch_dict[ch], m, nodes, Emin=e_min, Emax=m, bins=nodes,
+                             process='ann', theta_12=theta_12, theta_13=theta_13, 
+                             theta_23=theta_23, delta=delta, delta_m_12=delta_m_12, 
+                             delta_m_13=delta_m_13, interactions=True)
+    elif gen=='pythia':
+        print('uncool')
+        ch_dict = {5:'bb', 8:'WW', 11:'tautau'}
+        flux = propa.NuFlux(qr_ch_dict[ch], m, nodes, Emin=e_min, Emax=m, bins=nodes,
+                             process='ann', theta_12=theta_12, theta_13=theta_13, 
+                             theta_23=theta_23, delta=delta, delta_m_12=delta_m_12, 
+                             delta_m_13=delta_m_13, interactions=True, pathFlux='/data/user/qliu/DM/DMFlux/Pythia/no_EW/Sun/results/%s_%d_Sun.dat' % (ch_dict[ch], m))
+    else:
+        print('wrong gen')
+        quit()
     for i, zen in enumerate(zens):
-        if gen=='BRW':
-            flux = propa.NuFlux(qr_ch_dict[ch], m, nodes, Emin=e_min, Emax=m, bins=nodes,
-                                 process='ann', theta_12=theta_12, theta_13=theta_13, 
-                                 theta_23=theta_23, delta=delta, delta_m_12=delta_m_12, 
-                                 delta_m_13=delta_m_13, interactions=True)
-        elif gen=='pythia':
-            ch_dict = {5:'bb', 8:'WW', 11:'tautau'}
-            flux = propa.NuFlux(qr_ch_dict[ch], m, nodes, Emin=e_min, Emax=m, bins=nodes,
-                                 process='ann', theta_12=theta_12, theta_13=theta_13, 
-                                 theta_23=theta_23, delta=delta, delta_m_12=delta_m_12, 
-                                 delta_m_13=delta_m_13, interactions=True, pathFlux='/data/user/qliu/DM/DMFlux/Pythia/no_EW/Sun/results/%s_%d_Sun.dat' % (ch_dict[ch], m))
-        else:
-            print('wrong gen')
-            quit()
         det_flux = flux.Sun('detector', zenith=zen)
         dn_dz[0][i][:] = det_flux['nu_mu']
         dn_dz[1][i][:] = det_flux['nu_mu_bar']
@@ -72,6 +74,6 @@ if __name__=="__main__":
     dn_dz = calc_flux(args.ch, args.m, args.whichgen, param)
     if args.whichgen=='BRW':
         print('saving file to /data/user/jlazar/solar_WIMP/data/qr_dn_dz/ch%d-m%d_dn_dz.np' % (args.ch, args.m))
-        np.save("/data/user/jlazar/solar_WIMP/data/qr_dn_dz/ch%d-m%d_dn_dz.npy" % (args.ch, args.m), dn_dz)
+        np.save("/data/user/jlazar/solar_WIMP/data/1AU/ch%d-m%d_dn_dz.npy" % (args.ch, args.m), dn_dz)
     else:
-        np.save("/data/user/jlazar/solar_WIMP/data/qr_dn_dz/ch%d-m%d_dn_dz_pythia.npy" % (args.ch, args.m), dn_dz * float(args.m))
+        np.save("/data/user/jlazar/solar_WIMP/data/1AU/ch%d-m%d_dn_dz_pythia.npy" % (args.ch, args.m), dn_dz * float(args.m))

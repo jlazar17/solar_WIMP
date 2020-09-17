@@ -94,7 +94,6 @@ class BackgroundGamma():
         self.gamma_hist = hist*self._skip
 
     def save_gamma_hist(self, options):
-        #np.save('data/test_this', self.gamma_hist)
         print('%s_%s' % (self.mcfg.get_e_d_theta_path(self.fluxtype), options))
         np.save('%s_%s' % (self.mcfg.get_e_d_theta_path(self.fluxtype), options), self.gamma_hist)
 
@@ -164,7 +163,6 @@ class SignalGamma():
         self.gamma_hist = hist*self._skip
 
     def save_gamma_hist(self, options):
-        print('%s_%s' % (self.mcfg.get_e_d_theta_path(self.fluxtype), options))
         np.save('%s_%s' % (self.mcfg.get_e_d_theta_path(self.fluxtype), options), self.gamma_hist)
         #np.save('data/yes_please_test_me', self.gamma_hist)
 

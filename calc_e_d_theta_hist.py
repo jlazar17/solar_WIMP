@@ -59,63 +59,41 @@ def initialize_args():
     args = parser.parse_args()
     return args
 
-################################################################################
-class BackgroundGamma():
-      
-    def __init__(self, mcpath, fluxtype, options, _skip=1):
-        print('bg gamma')
-        self._skip  = _skip
-        self.slc    = slice(None, None, _skip)
-        self.mcpath = mcpath
-        self.h5f    = h5py.File(mcpath, "r")
-        self.mcfg   = PathGen(self.mcpath)
-        self.fluxtype = fluxtype
-        self.flux = np.load(self.mcfg.get_mc_dn_dz_path(self.fluxtype))[self.slc]
-        self._seed  = abs(hash(self.mcfg.get_mc_dn_dz_path(self.flux))) % (2**32)
-        self.mcr    = MCReader(self.mcpath, self.slc, options=options)
+delta_t = 60*30
 
+class BaseGamma():
 
-    def set_gamma_hist(self):
-        hist = np.zeros((len(gamma_bins)-1, len(e_bins)-1))
-        for i, jd in enumerate(jds):
-            x = sc.nParameter(jd)
-            obl = sc.solarObliquity(x)
-            L = sc.L(x)
-            G = sc.g(x)
-            lamb = sc.solarLambda(L,G)
-            rad = sc.solarR(G)
-            solar_solid_angle = 2*np.pi*(1-np.cos(r_sun/rad))
-            zenith = sc.equatorialZenith(obl, lamb)
+    def __init__(self, mcpath, fluxtype, options, _skip, _test=False):
 
-            reco_gamma = gaz.opening_angle(self.mcr.reco_zen, self.mcr.reco_az, zenith, azimuths[i])
-            h = np.histogram2d(reco_gamma, self.mcr.reco_e, bins=[gamma_bins, e_bins], weights=self.flux*self.mcr.oneweight)
-            hist += h[0]
+        self.mcpath     = mcpath
+        self.fluxtype   = fluxtype
+        self.options    = options
+        self._skip      = _skip
+        self._test      = _test
+        self.gamma_hist = None
+        self.slc        = slice(None, None, _skip)
+        self.h5f        = h5py.File(mcpath, "r")
+        self.mcfg       = PathGen(self.mcpath)
+        self._seed      = abs(hash(self.mcfg.get_mc_dn_dz_path(self.fluxtype))) % (2**32)
+        self.mcr        = MCReader(self.mcpath, self.slc, options=options)
+        self.flux       = self.load_flux()
 
-        self.gamma_hist = hist*self._skip
+    def make_hist(self):
+        pass
 
-    def save_gamma_hist(self, options):
-        print('%s_%s' % (self.mcfg.get_e_d_theta_path(self.fluxtype), options))
-        np.save('%s_%s' % (self.mcfg.get_e_d_theta_path(self.fluxtype), options), self.gamma_hist)
+    def load_flux(self):
+        return np.load(self.mcfg.get_mc_dn_dz_path(self.fluxtype))[self.slc]
 
-################################################################################
-class SignalGamma():
-      
-    def __init__(self, mcpath, fluxtype, options, _skip=1):
-        self._skip  = _skip
-        self.slc    = slice(None, None, _skip)
-        self.mcpath = mcpath
-        self.fluxtype = fluxtype
-        self.h5f    = h5py.File(mcpath, "r")
-        self.mcfg   = PathGen(self.mcpath)
-        if self.fluxtype=='solar-atm':
-            self.flux = np.load('/data/user/jlazar/solar_WIMP/data/solar_atm/AtIceCube/interped/SIBYLL2.3_Nominal.npy')[self.slc]
+    def save_hist(self):
+        if self.gamma_hist is None:
+            print('Gamma hist is not yet defined. Did not save')
         else:
-            self.flux   = np.load(self.mcfg.get_mc_dn_dz_path(self.fluxtype))[self.slc]
-        self._seed  = abs(hash(self.mcfg.get_mc_dn_dz_path(self.flux))) % (2**32)
-        self.mcr    = MCReader(self.mcpath, self.slc, options=options)
+            if self._test:
+                np.save('%s_%s_test' % (self.mcfg.get_e_d_theta_path(self.fluxtype), self.options), self.gamma_hist)
+            else:
+                np.save('%s_%s' % (self.mcfg.get_e_d_theta_path(self.fluxtype), self.options), self.gamma_hist)
 
-
-    def set_gamma_hist(self):
+    def do_calc(self):
         hist = np.zeros((len(gamma_bins)-1, len(e_bins)-1))
         for i, jd in enumerate(jds):
             x = sc.nParameter(jd)
@@ -124,59 +102,63 @@ class SignalGamma():
             G = sc.g(x)
             lamb = sc.solarLambda(L,G)
             rad = sc.solarR(G)
-            solar_solid_angle = 2*np.pi*(1-np.cos(r_sun/rad))
             zenith = sc.equatorialZenith(obl, lamb)
 
-            if self.fluxtype=='solar-atm':
-                gamma_cut = np.arctan(1.2*r_sun / rad)
-            else: 
-                gamma_cut = np.arctan(r_sun / rad)
-
-            zmax     = zenith+gamma_cut
-            zmin     = zenith-gamma_cut
-            amax     = azimuths[i]+gamma_cut
-            amin     = azimuths[i]-gamma_cut
-            m1 = np.logical_and(self.mcr.nu_zen>zmin, self.mcr.nu_zen<zmax)
-            m2 = np.logical_and((self.mcr.nu_az>amin%(2*np.pi)), self.mcr.nu_az<amax%(2*np.pi))
-            m  = np.logical_and(m1, m2)
- 
-            nu_gamma   = gaz.opening_angle(self.mcr.nu_zen[m], self.mcr.nu_az[m], zenith, azimuths[i])
-            reco_gamma = gaz.opening_angle(self.mcr.reco_zen[m], self.mcr.reco_az[m], zenith, azimuths[i])
-            if self.fluxtype=='solar-atm':
-                n = np.where(nu_gamma <= gamma_cut,
-                             self.flux[m] * \
-                             self.mcr.oneweight[m],
-                             0
-                            )
-            else:
-                n = np.where(nu_gamma <= gamma_cut,
-                             self.flux[m] *             \
-                             self.mcr.oneweight[m] *    \
-                             (1. / solar_solid_angle) * \
-                             (1. / (4*np.pi*np.power(rad, 2))),
-                             0
-                            )
-            h = np.histogram2d(reco_gamma, self.mcr.reco_e[m], bins=[gamma_bins, e_bins], weights=n)
+            h = self.make_hist(rad, zenith, azimuths[i])
             hist += h[0]
             
+        self.gamma_hist = hist*self._skip*delta_t
+
+class SignalGamma(BaseGamma):
+        
+
+    def make_hist(self, rad, zen, az):
+        solar_solid_angle = 2*np.pi*(1-np.cos(r_sun/rad))
+        gamma_cut = np.arctan(r_sun / rad)
+        zmax      = zen+gamma_cut
+        zmin      = zen-gamma_cut
+        amax      = az+gamma_cut
+        amin      = az-gamma_cut
+        m1        = np.logical_and(self.mcr.nu_zen>zmin, self.mcr.nu_zen<zmax)
+        m2        = np.logical_and((self.mcr.nu_az>amin%(2*np.pi)), self.mcr.nu_az<amax%(2*np.pi))
+        m3        = self.mcr.nu_e<=float(self.fluxtype.split('-')[-1][1:])
+        m12       = np.logical_and(m1, m2)
+        m         = np.logical_and(m12, m3)
+        nu_gamma  = gaz.opening_angle(self.mcr.nu_zen[m], self.mcr.nu_az[m], zen, az)
+        reco_gamma = gaz.opening_angle(self.mcr.reco_zen[m], self.mcr.reco_az[m], zen, az)
+        n = np.where(nu_gamma <= gamma_cut,
+                     self.flux[m] *             \
+                     self.mcr.oneweight[m] *    \
+                     (1. / solar_solid_angle) * \
+                     (1. / (4*np.pi*np.power(rad, 2))),
+                     0
+                    )
+        h = np.histogram2d(reco_gamma, self.mcr.reco_e[m], bins=[gamma_bins, e_bins], weights=n)
+        
+        return h
+
+class BackgroundGamma(BaseGamma):
+
+    def make_hist(self, rad, zen, az):
+        reco_gamma = gaz.opening_angle(self.mcr.reco_zen, self.mcr.reco_az, zen, az)
+        h = np.histogram2d(reco_gamma, self.mcr.reco_e, bins=[gamma_bins, e_bins], weights=self.flux*self.mcr.oneweight)
+        return h
+
+
  
-        self.gamma_hist = hist*self._skip
-
-    def save_gamma_hist(self, options):
-        np.save('%s_%s' % (self.mcfg.get_e_d_theta_path(self.fluxtype), options), self.gamma_hist)
-        #np.save('data/yes_please_test_me', self.gamma_hist)
-
+ 
 def main(mcpath, fluxtype, options, _skip=1):
     if fluxtype=='conv-numu':
         print('bg')
-        gamma = BackgroundGamma(mcpath, fluxtype, options, _skip=_skip)
+        gamma = BackgroundGamma(mcpath, fluxtype, options, _skip=_skip, _test=True)
     else:
         print('signal')
-        gamma = SignalGamma(mcpath, fluxtype, options, _skip=_skip)
+        gamma = SignalGamma(mcpath, fluxtype, options, _skip=_skip, _test=True)
     print('setting hist')
-    gamma.set_gamma_hist()
+    gamma.do_calc()
     print("saving hist")
-    gamma.save_gamma_hist(options)
+    gamma.save_hist()
+    print('Took %f seconds to run' % (time.time()-t0))
 
 if __name__=='__main__':
     args=initialize_args()

@@ -94,9 +94,9 @@ class BackgroundGamma():
         self.gamma_hist = hist*self._skip
 
     def save_gamma_hist(self, options):
-        np.save('data/test_this', self.gamma_hist)
+        #np.save('data/test_this', self.gamma_hist)
         print('%s_%s' % (self.mcfg.get_e_d_theta_path(self.fluxtype), options))
-        #np.save(self.mcfg.get_e_d_theta_path(self.fluxtype), self.gamma_hist)
+        np.save('%s_%s' % (self.mcfg.get_e_d_theta_path(self.fluxtype), options), self.gamma_hist)
 
 ################################################################################
 class SignalGamma():
@@ -165,8 +165,8 @@ class SignalGamma():
 
     def save_gamma_hist(self, options):
         print('%s_%s' % (self.mcfg.get_e_d_theta_path(self.fluxtype), options))
-        #np.save('%s_%s' % (self.mcfg.get_e_d_theta_path(self.fluxtype), options), self.gamma_hist)
-        np.save('data/yes_please_test_me', self.gamma_hist)
+        np.save('%s_%s' % (self.mcfg.get_e_d_theta_path(self.fluxtype), options), self.gamma_hist)
+        #np.save('data/yes_please_test_me', self.gamma_hist)
 
 def main(mcpath, fluxtype, options, _skip=1):
     if fluxtype=='conv-numu':

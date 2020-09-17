@@ -1,45 +1,15 @@
 import time
 t0 = time.time()
-print(t0)
-print('importing numpy')
 import numpy as np
-print('took %f seconds' % (time.time()-t0))
-t = time.time()
-print('importing solar_position_calc')
 import solar_position_calc as sc
-print('took %f seconds' % (time.time()-t))
-t = time.time()
-print('importing controls')
 from controls import *
-print('took %f seconds' % (time.time()-t))
-t = time.time()
-print('importing PathGen')
 from path_gen import PathGen
-print('took %f seconds' % (time.time()-t))
-t = time.time()
-print('importing path')
 from os import path
-print('took %f seconds' % (time.time()-t))
-t = time.time()
-print('importing argparse')
 import argparse
-print('took %f seconds' % (time.time()-t))
-t = time.time()
-print('importing weighter')
 import weight_MC as wmc
-print('took %f seconds' % (time.time()-t))
-t = time.time()
-print('importing MCReader')
 from mc_reader import MCReader
-print('took %f seconds' % (time.time()-t))
-t = time.time()
-print('importing h5py')
 import h5py
-print('took %f seconds' % (time.time()-t))
-t = time.time()
-print('importing rescale thing')
 import gen_rescale_az_zen as gaz
-print('took %f seconds' % (time.time()-t))
 
 def initialize_args():
     parser = argparse.ArgumentParser()
@@ -59,7 +29,6 @@ def initialize_args():
     args = parser.parse_args()
     return args
 
-delta_t = 60*30
 
 class BaseGamma():
 
@@ -150,7 +119,7 @@ class BackgroundGamma(BaseGamma):
 def main(mcpath, fluxtype, options, _skip=1):
     if fluxtype=='conv-numu':
         print('bg')
-        gamma = BackgroundGamma(mcpath, fluxtype, options, _skip=_skip, _test=True)
+        gamma = BackgroundGamma(mcpath, fluxtype, options, _skip=_skip)
     else:
         print('signal')
         gamma = SignalGamma(mcpath, fluxtype, options, _skip=_skip, _test=True)

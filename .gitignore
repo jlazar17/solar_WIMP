@@ -4,3 +4,4 @@
 *.csv
 paper.mplstyle
 data/*
+plots/*

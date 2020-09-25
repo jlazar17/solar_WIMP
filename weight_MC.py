@@ -1,6 +1,5 @@
 import numpy as np
 import argparse
-import LeptonWeighter as LW
 import tables
 from path_gen import PathGen
 
@@ -51,6 +50,7 @@ def chonk_h5file(mcgf, chonk_size=1e5):
 
 # Set up LeptonWeighter
 def initialize_weighter(mcgf):
+    import LeptonWeighter as LW
     simulation_generators = LW.MakeGeneratorsFromLICFile(mcgf.get_licfile_path())
     
     #kaon_nusquids_flux = LW.nuSQUIDSAtmFlux(args.nuSQFluxKaon)

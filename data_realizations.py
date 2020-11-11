@@ -115,7 +115,8 @@ class TS:
 def main(ch, m, savedir, n=10000):
     if not os.path.exists(savedir):
         os.makedir(savedir)
-    xss = np.logspace(-2, np.log10(2), 17)
+    #xss = np.logspace(-2, np.log10(2), 17)
+    xss = [1e0]
     results = np.recarray((len(xss)*n),
                           dtype=[('bg_ts', float), ('sig_ts', float), ('inj_xs', float), ('fit_xs', float)]
                          )
@@ -123,7 +124,7 @@ def main(ch, m, savedir, n=10000):
     for i, xs in enumerate(xss):
         mu_bg    = np.load('/data/user/jlazar/solar_WIMP/data/e_d_theta_hist/conv-numu_Nominal_e_d_theta_01.npy')
         mu_s_scr = DMAnnihilationJungmanSD(m,1e-39)/float(m)*np.load('/data/user/jlazar/solar_WIMP/data/e_d_theta_hist/ch%d-m%d_Nominal_e_d_theta_01.npy' % (ch, m))
-        mu_s = DMAnnihilationJungmanSD(m,1e-39)/float(m)*np.load('/data/user/jlazar/solar_WIMP/data/e_d_theta_hist/ch%d-m%d_Nominal_e_d_theta_00.npy' % (ch,m))
+        mu_s     = DMAnnihilationJungmanSD(m,1e-39)/float(m)*np.load('/data/user/jlazar/solar_WIMP/data/e_d_theta_hist/ch%d-m%d_Nominal_e_d_theta_00.npy' % (ch,m))
     
         bg  = mu_bg+mu_s_scr
         sig = mu_s-mu_s_scr
@@ -133,21 +134,18 @@ def main(ch, m, savedir, n=10000):
         signal_TS = np.zeros(n)
         fit_xs = np.zeros(n)
         for i in range(n):
-            lxs_ini = np.log(10)*(np.log10(xs)+0.5*(np.random.rand()-0.5))
-            null_data = np.random.poisson(bg)
-            ts = TS(null_data, sig, bg)
-            null_TS[i] = ts.get_TS()
-            inj_data = np.random.poisson(mu_bg+xs*mu_s)
-            ts = TS(inj_data, mu_s, mu_bg, lxs_ini=lxs_ini)
+            lxs_ini      = np.log(10)*(np.log10(xs)+0.5*(np.random.rand()-0.5))
+            null_data    = np.random.poisson(mu_bg)
+            ts           = TS(null_data, sig, bg)
+            null_TS[i]   = ts.get_TS()
+            inj_data     = np.random.poisson(mu_bg+xs*mu_s)
+            ts           = TS(inj_data, mu_s, mu_bg, lxs_ini=lxs_ini)
             signal_TS[i] = ts.get_TS()
-            fit_xs[i] = np.exp(ts.signal_fit.x[0])*1e-39
+            fit_xs[i]    = np.exp(ts.signal_fit.x[0])*1e-39
         results['bg_ts'][slc]  = null_TS
-        print(signal_TS)
-        print(null_TS)
         results['sig_ts'][slc] = signal_TS
         results['inj_xs'][slc] = xs*1e-39
         results['fit_xs'][slc] = fit_xs
-        print('%d push ups without even looking' % n)
     np.save('%s/ch%d-m%d_realiztions' % (savedir, ch, m), results)
 
 
@@ -188,4 +186,4 @@ def main(ch, m, savedir, n=10000):
 
 if __name__=='__main__':
     args = initialize_argparse()
-    main(args.ch, args.m, args.savedir, n=1000)
+    main(args.ch, args.m, args.savedir, n=100)

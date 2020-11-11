@@ -91,35 +91,21 @@ class TS:
             self.set_null_bf_llh()
         return -2*(self.null_bf_llh-self.signal_bf_llh)
 
-#class TS:
-#    
-#    def __init__(self, data, signal_dist, bg_dist, lxs_ini=0):
-#        
-#        self.data          = data
-#        self.signal_dist   = signal_dist
-#        self.bg_dist       = bg_dist
-#        self.lxs_ini       = lxs_ini
-#        self.null_bf_llh   = None
-#        self.signal_bf_llh = None
-#        self.bnds          = ((None, None), (None, None))
-#        
-#        self.bg_nll      = lambda x: -log_likelihood((-np.inf, x), 0, self.bg_dist, self.data)
-#        self.signal_nll  = lambda x: -log_likelihood(x, self.signal_dist, self.bg_dist, self.data)
-#        
-#    def set_null_bf_llh(self):
-#        self.bg_fit      = minimize(self.bg_nll, 0, method='BFGS', bounds=self.bnds)
-#        self.null_bf_llh = log_likelihood((np.log(0), self.bg_fit.x), 0, self.bg_dist, self.data)
-#        
-#    def set_signal_bf_llh(self):
-#        self.signal_fit    = minimize(self.signal_nll, (0, self.lxs_ini), method='BFGS', bounds=self.bnds)
-#        self.signal_bf_llh = log_likelihood(self.signal_fit.x, self.signal_dist, self.bg_dist, self.data)
-#        
-#    def get_TS(self):
-#        if self.signal_bf_llh is None:
-#            self.set_signal_bf_llh()
-#        if self.null_bf_llh is None:
-#            self.set_null_bf_llh()
-#        return -2*(self.null_bf_llh-self.signal_bf_llh)
+def get_distributions(ch, m, xs, scramble):
+    if scramble:
+        mu_bg    = np.load('/data/user/jlazar/solar_WIMP/data/e_d_theta_hist/conv-numu_Nominal_e_d_theta_01.npy')
+        mu_s_scr = DMAnnihilationJungmanSD(m,1e-39)/float(m)*np.load('/data/user/jlazar/solar_WIMP/data/e_d_theta_hist/ch%d-m%d_Nominal_e_d_theta_01.npy' % (ch, m))
+        mu_s     = DMAnnihilationJungmanSD(m,1e-39)/float(m)*np.load('/data/user/jlazar/solar_WIMP/data/e_d_theta_hist/ch%d-m%d_Nominal_e_d_theta_00.npy' % (ch,m))
+
+        bg_tmpl  = mu_bg+xs*mu_s_scr
+        sig_tmpl = mu_s-mu_s_scr
+    else:
+        mu_bg    = np.load('/data/user/jlazar/solar_WIMP/data/e_d_theta_hist/conv-numu_Nominal_e_d_theta_00.npy')
+        mu_s     = DMAnnihilationJungmanSD(m,1e-39)/float(m)*np.load('/data/user/jlazar/solar_WIMP/data/e_d_theta_hist/ch%d-m%d_Nominal_e_d_theta_00.npy' % (ch,m))
+
+        bg_tmpl  = mu_bg
+        sig_tmpl = mu_s
+    return mu_bg, mu_s, bg_tmpl, sig_tmpl
 
 def main(ch, m, savedir,  opts, n=10000):
     if not os.path.exists(savedir):
@@ -132,12 +118,20 @@ def main(ch, m, savedir,  opts, n=10000):
                          )
     
     for i, xs in enumerate(xss):
-        mu_bg    = np.load('/data/user/jlazar/solar_WIMP/data/e_d_theta_hist/conv-numu_Nominal_e_d_theta_01.npy')
-        mu_s_scr = DMAnnihilationJungmanSD(m,1e-39)/float(m)*np.load('/data/user/jlazar/solar_WIMP/data/e_d_theta_hist/ch%d-m%d_Nominal_e_d_theta_01.npy' % (ch, m))
-        mu_s     = DMAnnihilationJungmanSD(m,1e-39)/float(m)*np.load('/data/user/jlazar/solar_WIMP/data/e_d_theta_hist/ch%d-m%d_Nominal_e_d_theta_00.npy' % (ch,m))
+        mu_bg, mu_s, bg_tmpl, sig_tmpl = get_distributions(ch, m, xs, scramble)
+        #if scramble:
+        #    mu_bg    = np.load('/data/user/jlazar/solar_WIMP/data/e_d_theta_hist/conv-numu_Nominal_e_d_theta_01.npy')
+        #    mu_s_scr = DMAnnihilationJungmanSD(m,1e-39)/float(m)*np.load('/data/user/jlazar/solar_WIMP/data/e_d_theta_hist/ch%d-m%d_Nominal_e_d_theta_01.npy' % (ch, m))
+        #    mu_s     = DMAnnihilationJungmanSD(m,1e-39)/float(m)*np.load('/data/user/jlazar/solar_WIMP/data/e_d_theta_hist/ch%d-m%d_Nominal_e_d_theta_00.npy' % (ch,m))
     
-        bg  = mu_bg+xs*mu_s_scr
-        sig = mu_s-mu_s_scr
+        #    bg_tmpl  = mu_bg+xs*mu_s_scr
+        #    sig_tmpl = mu_s-mu_s_scr
+        #else:
+        #    mu_bg    = np.load('/data/user/jlazar/solar_WIMP/data/e_d_theta_hist/conv-numu_Nominal_e_d_theta_00.npy')
+        #    mu_s     = DMAnnihilationJungmanSD(m,1e-39)/float(m)*np.load('/data/user/jlazar/solar_WIMP/data/e_d_theta_hist/ch%d-m%d_Nominal_e_d_theta_00.npy' % (ch,m))
+
+        #    bg_tmpl  = mu_bg
+        #    sig_tmpl = mu_s
     
         slc = slice(i*n, (i+1)*n)
         null_TS = np.zeros(n)
@@ -146,10 +140,10 @@ def main(ch, m, savedir,  opts, n=10000):
         for i in range(n):
             lxs_ini      = np.log(10)*(np.log10(xs)+0.5*(np.random.rand()-0.5))
             null_data    = np.random.poisson(mu_bg)
-            ts           = TS(null_data, sig, bg)
+            ts           = TS(null_data, sig_tmpl, bg_tmpl, lxs_ini=lxs_ini)
             null_TS[i]   = ts.get_TS()
             inj_data     = np.random.poisson(mu_bg+xs*mu_s)
-            ts           = TS(inj_data, sig, bg, lxs_ini=lxs_ini)
+            ts           = TS(inj_data, sig_tmpl, bg_tmpl, lxs_ini=lxs_ini)
             signal_TS[i] = ts.get_TS()
             fit_xs[i]    = np.exp(ts.signal_fit.x[0])*1e-39
         results['bg_ts'][slc]  = null_TS

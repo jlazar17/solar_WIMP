@@ -149,7 +149,7 @@ def main(ch, m, savedir,  opts, n=10000):
             ts           = TS(null_data, sig, bg)
             null_TS[i]   = ts.get_TS()
             inj_data     = np.random.poisson(mu_bg+xs*mu_s)
-            ts           = TS(inj_data, mu_s, mu_bg, lxs_ini=lxs_ini)
+            ts           = TS(inj_data, sig, bg, lxs_ini=lxs_ini)
             signal_TS[i] = ts.get_TS()
             fit_xs[i]    = np.exp(ts.signal_fit.x[0])*1e-39
         results['bg_ts'][slc]  = null_TS

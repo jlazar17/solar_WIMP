@@ -11,11 +11,20 @@ from scipy.optimize import minimize
 from scipy.stats import chi2
 from scipy.integrate import quad
 
+def parse_bool(thing):
+    if thing in [True, '1', 1, 'yes', 'y']:
+        return True
+    elif thing in [False, '0', 0, 'no', 'n']:
+        return False
+    else:
+        print('Input:%s not recognized' % thing)
+
 def initialize_argparse():
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--ch', type=int)
     parser.add_argument('-m', type=int)
+    parser.add_argument('--opts', type=str, default='01')
     parser.add_argument('--savedir', type=str,
                         default='/data/user/jlazar/solar_WIMP/data/realizations/'
                        )
@@ -112,9 +121,11 @@ class TS:
 #            self.set_null_bf_llh()
 #        return -2*(self.null_bf_llh-self.signal_bf_llh)
 
-def main(ch, m, savedir, n=10000):
+def main(ch, m, savedir,  opts, n=10000):
     if not os.path.exists(savedir):
         os.makedir(savedir)
+    scramble = parse_bool(opts[1])
+    print(scramble)
     #xss = np.logspace(-2, np.log10(2), 17)
     xss = [1e0]
     results = np.recarray((len(xss)*n),
@@ -186,4 +197,4 @@ def main(ch, m, savedir, n=10000):
 
 if __name__=='__main__':
     args = initialize_argparse()
-    main(args.ch, args.m, args.savedir, n=100)
+    main(args.ch, args.m, args.savedir, args.opts, n=100)

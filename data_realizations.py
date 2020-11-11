@@ -125,7 +125,6 @@ def main(ch, m, savedir,  opts, n=10000):
     if not os.path.exists(savedir):
         os.makedir(savedir)
     scramble = parse_bool(opts[1])
-    print(scramble)
     #xss = np.logspace(-2, np.log10(2), 17)
     xss = [1e0]
     results = np.recarray((len(xss)*n),
@@ -137,7 +136,7 @@ def main(ch, m, savedir,  opts, n=10000):
         mu_s_scr = DMAnnihilationJungmanSD(m,1e-39)/float(m)*np.load('/data/user/jlazar/solar_WIMP/data/e_d_theta_hist/ch%d-m%d_Nominal_e_d_theta_01.npy' % (ch, m))
         mu_s     = DMAnnihilationJungmanSD(m,1e-39)/float(m)*np.load('/data/user/jlazar/solar_WIMP/data/e_d_theta_hist/ch%d-m%d_Nominal_e_d_theta_00.npy' % (ch,m))
     
-        bg  = mu_bg+mu_s_scr
+        bg  = mu_bg+xs*mu_s_scr
         sig = mu_s-mu_s_scr
     
         slc = slice(i*n, (i+1)*n)
@@ -157,43 +156,7 @@ def main(ch, m, savedir,  opts, n=10000):
         results['sig_ts'][slc] = signal_TS
         results['inj_xs'][slc] = xs*1e-39
         results['fit_xs'][slc] = fit_xs
-    np.save('%s/ch%d-m%d_realiztions' % (savedir, ch, m), results)
-
-
-#def main(ch, m, savedir, n=10000):
-#    if not os.path.exists(savedir):
-#        os.makedir(savedir)
-#    xss = np.logspace(-2, np.log10(2), 17)
-#    results = np.recarray((len(xss)*n),
-#                      dtype=[('bg_ts', float), ('sig_ts', float), ('inj_xs', float), ('fit_xs', float)]
-#                     )
-#    for i, xs in enumerate(xss):
-#        print(xs)
-#        mu_bg    = np.load('/data/user/jlazar/solar_WIMP/data/e_d_theta_hist/conv-numu_Nominal_e_d_theta_01.npy')
-#        mu_s_scr = DMAnnihilationJungmanSD(m,1e-39)/float(m)*np.load('/data/user/jlazar/solar_WIMP/data/e_d_theta_hist/ch%d-m%d_Nominal_e_d_theta_01.npy' % (ch, m))
-#        mu_s = DMAnnihilationJungmanSD(m,1e-39)/float(m)*np.load('/data/user/jlazar/solar_WIMP/data/e_d_theta_hist/ch%d-m%d_Nominal_e_d_theta_00.npy' % (ch,m))
-#        
-#        bg  = mu_bg+mu_s_scr
-#        sig = mu_s-mu_s_scr    
-#
-#        slc = slice(i*n, (i+1)*n)
-#        null_TS = signal_TS = fit_xs = np.zeros(n)
-#        for i in range(n):
-#            lxs_ini = np.log(10)*(np.log10(xs)+0.5*(np.random.rand()-0.5))
-#            null_data = np.random.poisson(bg)
-#            ts = TS(null_data, sig, bg)
-#            null_TS[i] = ts.get_TS()
-#            inj_data = np.random.poisson(mu_bg+xs*mu_s)
-#            ts = TS(inj_data, mu_s, mu_bg, lxs_ini=lxs_ini)
-#            signal_TS[i] = ts.get_TS()
-#            fit_xs[i] = np.exp(ts.signal_fit.x[0])*1e-39
-#            print(fit_xs[i])
-#        results['bg_ts'][slc] = null_TS
-#        results['sig_ts'][slc] = signal_TS
-#        results['inj_xs'][slc] = xs*1e-39
-#        results['fit_xs'][slc] = fit_xs
-#
-#    np.save('%s/ch%d-m%d_realiztions' % (savedir, ch, m), results)
+    np.save('%s/ch%d-m%d_%s_realiztions' % (savedir, ch, m, opts), results)
 
 if __name__=='__main__':
     args = initialize_argparse()

@@ -111,32 +111,18 @@ def main(ch, m, savedir,  opts, n=10000):
     if not os.path.exists(savedir):
         os.makedir(savedir)
     scramble = parse_bool(opts[1])
-    #xss = np.logspace(-2, np.log10(2), 17)
-    xss = [1e0]
+    xss = np.logspace(-2, 2, 30)
     results = np.recarray((len(xss)*n),
                           dtype=[('bg_ts', float), ('sig_ts', float), ('inj_xs', float), ('fit_xs', float)]
                          )
     
     for i, xs in enumerate(xss):
         mu_bg, mu_s, bg_tmpl, sig_tmpl = get_distributions(ch, m, xs, scramble)
-        #if scramble:
-        #    mu_bg    = np.load('/data/user/jlazar/solar_WIMP/data/e_d_theta_hist/conv-numu_Nominal_e_d_theta_01.npy')
-        #    mu_s_scr = DMAnnihilationJungmanSD(m,1e-39)/float(m)*np.load('/data/user/jlazar/solar_WIMP/data/e_d_theta_hist/ch%d-m%d_Nominal_e_d_theta_01.npy' % (ch, m))
-        #    mu_s     = DMAnnihilationJungmanSD(m,1e-39)/float(m)*np.load('/data/user/jlazar/solar_WIMP/data/e_d_theta_hist/ch%d-m%d_Nominal_e_d_theta_00.npy' % (ch,m))
-    
-        #    bg_tmpl  = mu_bg+xs*mu_s_scr
-        #    sig_tmpl = mu_s-mu_s_scr
-        #else:
-        #    mu_bg    = np.load('/data/user/jlazar/solar_WIMP/data/e_d_theta_hist/conv-numu_Nominal_e_d_theta_00.npy')
-        #    mu_s     = DMAnnihilationJungmanSD(m,1e-39)/float(m)*np.load('/data/user/jlazar/solar_WIMP/data/e_d_theta_hist/ch%d-m%d_Nominal_e_d_theta_00.npy' % (ch,m))
 
-        #    bg_tmpl  = mu_bg
-        #    sig_tmpl = mu_s
-    
-        slc = slice(i*n, (i+1)*n)
-        null_TS = np.zeros(n)
+        slc       = slice(i*n, (i+1)*n)
+        null_TS   = np.zeros(n)
         signal_TS = np.zeros(n)
-        fit_xs = np.zeros(n)
+        fit_xs    = np.zeros(n)
         for i in range(n):
             lxs_ini      = np.log(10)*(np.log10(xs)+0.5*(np.random.rand()-0.5))
             null_data    = np.random.poisson(mu_bg)
@@ -154,4 +140,4 @@ def main(ch, m, savedir,  opts, n=10000):
 
 if __name__=='__main__':
     args = initialize_argparse()
-    main(args.ch, args.m, args.savedir, args.opts, n=100)
+    main(args.ch, args.m, args.savedir, args.opts, n=1000)

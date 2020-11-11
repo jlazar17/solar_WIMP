@@ -1,4 +1,5 @@
 import numpy as np
+import astropy
 
 auToCm = 1.496e13 # conversion to cm from au
 

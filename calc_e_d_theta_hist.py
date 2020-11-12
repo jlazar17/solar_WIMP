@@ -25,6 +25,10 @@ def initialize_args():
                         type=str,
                         default='00'
                        )
+    parser.add_argument('--test',
+                        action='store_true',
+                        default=False
+                       )
     
     args = parser.parse_args()
     return args
@@ -39,9 +43,12 @@ class BaseGamma():
         self.options    = options
         self._skip      = _skip
         self._test      = _test
+        if 'oscNext' in mcpath:
+            self.e_bins = le_e_bins
+        else:
+            self.e_bins = e_bins
         self.gamma_hist = None
         self.slc        = slice(None, None, _skip)
-        self.h5f        = h5py.File(mcpath, "r")
         self.mcfg       = PathGen(self.mcpath)
         self._seed      = abs(hash(self.mcfg.get_mc_dn_dz_path(self.fluxtype))) % (2**32)
         self.mcr        = MCReader(self.mcpath, self.slc, options=options)
@@ -63,7 +70,7 @@ class BaseGamma():
                 np.save('%s_%s' % (self.mcfg.get_e_d_theta_path(self.fluxtype), self.options), self.gamma_hist)
 
     def do_calc(self):
-        hist = np.zeros((len(gamma_bins)-1, len(e_bins)-1))
+        hist = np.zeros((len(gamma_bins)-1, len(self.e_bins)-1))
         for i, jd in enumerate(jds):
             x = sc.nParameter(jd)
             obl = sc.solarObliquity(x)
@@ -102,33 +109,58 @@ class SignalGamma(BaseGamma):
                      (1. / (4*np.pi*np.power(rad, 2))),
                      0
                     )
-        h = np.histogram2d(reco_gamma, self.mcr.reco_e[m], bins=[gamma_bins, e_bins], weights=n)
+        h = np.histogram2d(reco_gamma, self.mcr.reco_e[m], bins=[gamma_bins, self.e_bins], weights=n)
+        
+        return h
+class SolarAtmGamma(BaseGamma):
+        
+
+    def make_hist(self, rad, zen, az):
+        solar_solid_angle = 2*np.pi*(1-np.cos(r_sun/rad))
+        gamma_cut = np.arctan(r_sun / rad)
+        zmax      = zen+gamma_cut
+        zmin      = zen-gamma_cut
+        amax      = az+gamma_cut
+        amin      = az-gamma_cut
+        m1        = np.logical_and(self.mcr.nu_zen>zmin, self.mcr.nu_zen<zmax)
+        m2        = np.logical_and((self.mcr.nu_az>amin%(2*np.pi)), self.mcr.nu_az<amax%(2*np.pi))
+        m         = np.logical_and(m1, m2)
+        nu_gamma  = gaz.opening_angle(self.mcr.nu_zen[m], self.mcr.nu_az[m], zen, az)
+        reco_gamma = gaz.opening_angle(self.mcr.reco_zen[m], self.mcr.reco_az[m], zen, az)
+        n = np.where(nu_gamma <= gamma_cut,
+                     self.flux[m] *             \
+                     self.mcr.oneweight[m],
+                     0
+                    )
+        h = np.histogram2d(reco_gamma, self.mcr.reco_e[m], bins=[gamma_bins, self.e_bins], weights=n)
         
         return h
 
-class BackgroundGamma(BaseGamma):
+class ConvNuMuGamma(BaseGamma):
 
     def make_hist(self, rad, zen, az):
         reco_gamma = gaz.opening_angle(self.mcr.reco_zen, self.mcr.reco_az, zen, az)
-        h = np.histogram2d(reco_gamma, self.mcr.reco_e, bins=[gamma_bins, e_bins], weights=self.flux*self.mcr.oneweight)
+        h = np.histogram2d(reco_gamma, self.mcr.reco_e, bins=[gamma_bins, self.e_bins], weights=self.flux*self.mcr.oneweight)
         return h
 
 
  
  
-def main(mcpath, fluxtype, options, _skip=1):
+def main(mcpath, fluxtype, options, _skip, _test):
     if fluxtype=='conv-numu':
-        print('bg')
-        gamma = BackgroundGamma(mcpath, fluxtype, options, _skip=_skip)
+        gamma = ConvNuMuGamma(mcpath, fluxtype, options, _skip=_skip, _test=_test)
+    elif fluxtype=='solar-atm':
+        gamma = SolarAtmGamma(mcpath, fluxtype, options, _skip=_skip, _test=_test)
     else:
-        print('signal')
-        gamma = SignalGamma(mcpath, fluxtype, options, _skip=_skip, _test=True)
-    print('setting hist')
+        gamma = SignalGamma(mcpath, fluxtype, options, _skip=_skip, _test=_test)
+    print('doing calc')
     gamma.do_calc()
-    print("saving hist")
     gamma.save_hist()
-    print('Took %f seconds to run' % (time.time()-t0))
 
 if __name__=='__main__':
     args=initialize_args()
-    main(args.mcfile, args.fluxtype, args.options, _skip=1000)
+    if args.test:
+        print('testing')
+    else:
+        print('not testing')
+    main(args.mcfile, args.fluxtype, args.options, 1, args.test)
